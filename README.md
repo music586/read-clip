@@ -43,19 +43,17 @@ private: false
 
 ## 私密内容边界
 
-`private: true` 会在页面、标签、来源、RSS、站点地图和 Pagefind 索引生成前排除该摘抄，构建后还会扫描公开产物。但是它不能保护公开源码仓库里的 Markdown：本仓库必须保持私有，只把 `dist/` 发布到另一个公开仓库。不要把内容源码仓库改成公开仓库。
+`private: true` 会在页面、标签、来源、RSS、站点地图和 Pagefind 索引生成前排除该摘抄，构建后还会扫描公开产物。但本仓库是公开仓库，任何人仍能直接查看其中的 Markdown 源文件。因此 `private: true` 仅表示“不展示在站点中”，不能用于保存敏感或真正私密的内容。
 
-## GitHub Pages 双仓库部署
+## GitHub Pages 部署
 
-1. 创建一个公开的目标仓库，默认分支设为 `main`，在 Settings → Pages 中选择从 `main` 分支根目录发布。
-2. 创建仅能写入该目标仓库 Contents 的 fine-grained personal access token，并在私有源码仓库 Actions secret 中保存为 `PAGES_DEPLOY_TOKEN`。
-3. 在私有源码仓库 Actions variables 中设置：
-   - `SITE_URL`：Pages 站点源，例如 `https://username.github.io`。
-   - `BASE_PATH`：项目站点子路径，例如 `/read-clip`；用户站点使用 `/`。
-   - `PAGES_REPOSITORY`：公开目标仓库，格式为 `owner/repository`。
-4. 推送到 `main`，或手动运行 “Verify and publish public site” 工作流。
+本项目直接从当前公开仓库发布，不需要 Personal Access Token、Actions secrets 或额外的发布仓库。
 
-工作流只有在内容校验、单元测试、生产构建、隐私审计和浏览器测试全部通过后，才会用静态产物覆盖目标仓库的 `main` 分支。目标仓库不会收到 `.git`、Markdown 源文件、依赖缓存或环境文件。
+1. 进入仓库 Settings → Pages。
+2. 在 Build and deployment 中将 Source 设为 `GitHub Actions`。
+3. 推送到 `main`，或手动运行 “Verify and publish public site” 工作流。
+
+工作流只有在内容校验、单元测试、生产构建、隐私审计和浏览器测试全部通过后，才会上传 `dist/` 并部署。GitHub 自动提供短期 `GITHUB_TOKEN`，站点地址为 `https://music586.github.io/read-clip/`。
 
 ## 排查失败
 
@@ -63,5 +61,5 @@ private: false
 - 路径冲突：两个 Markdown/MDX 文件映射到同一 URL 时会列出两者 ID，重命名其中一个。
 - 隐私审计失败：日志只显示私密内容文件 ID 和泄漏产物文件名，不显示私密文本。检查是否绕过了 `getPublicClips()`。
 - 搜索测试失败：先确认 `npm run build` 已生成 `dist/_pagefind/`，再运行端到端测试。
-- 子路径资源 404：确认 `BASE_PATH` 与 GitHub Pages 项目路径完全一致，并以 `/` 开头。
-- 部署失败：确认目标仓库存在、默认分支为 `main`，令牌未过期且只对目标仓库授予 Contents 写权限。
+- 子路径资源 404：当前发布路径固定为 `/read-clip`；仓库重命名后需要同步修改工作流中的 `BASE_PATH`。
+- 部署失败：确认 Settings → Pages → Source 已设为 `GitHub Actions`，并检查工作流的 `pages: write` 与 `id-token: write` 权限。
