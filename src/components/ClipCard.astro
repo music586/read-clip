@@ -1,0 +1,31 @@
+---
+import type { ClipEntry } from '../lib/clips';
+import { clipPath, excerpt } from '../lib/clips';
+import { formatDate } from '../lib/date';
+import { sourceKey } from '../lib/sources';
+import { tagKey } from '../lib/tags';
+import { withBase } from '../lib/urls';
+
+interface Props {
+  clip: ClipEntry;
+}
+
+const { clip } = Astro.props;
+const sourcePath = `/sources/${sourceKey(clip.data)}/`;
+---
+
+<article class="clip-card">
+  <div class="clip-meta">
+    <time datetime={clip.data.createdAt}>{formatDate(clip.data.createdAt)}</time>
+    <span aria-hidden="true">·</span>
+    <a href={withBase(sourcePath)}>{clip.data.source}</a>
+    {clip.data.author && <span>，{clip.data.author}</span>}
+  </div>
+  <h2><a href={withBase(clipPath(clip.id))}>{clip.data.title}</a></h2>
+  <p class="clip-excerpt">{excerpt(clip.body ?? '')}</p>
+  {clip.data.tags.length > 0 && (
+    <ul class="tag-list" aria-label="标签">
+      {clip.data.tags.map((tag) => <li><a href={withBase(`/tags/${tagKey(tag)}/`)}>#{tag}</a></li>)}
+    </ul>
+  )}
+</article>

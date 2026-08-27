@@ -1,0 +1,138 @@
+---
+import { withBase } from '../lib/urls';
+
+interface Props { tag?: string }
+const { tag } = Astro.props;
+const pagefindUrl = withBase('/_pagefind/pagefind.js');
+---
+
+<div class="search-panel" data-search-root data-pagefind-url={pagefindUrl} data-tag={tag ?? ''}>
+  <form role="search" class="search-form">
+    <label for={`clip-search-${tag ? 'tag' : 'all'}`}>搜索摘抄</label>
+    <div class="search-input-row">
+      <input id={`clip-search-${tag ? 'tag' : 'all'}`} type="search" name="q" autocomplete="off" placeholder="输入标题、正文、作者或来源…" />
+      <button type="submit">搜索</button>
+    </div>
+  </form>
+  <p class="search-status" aria-live="polite">输入关键词开始搜索</p>
+  <ol class="search-results"></ol>
+  <div class="search-empty" hidden>
+    <p>没有找到匹配的摘抄。</p>
+    <button type="button" data-clear-search>清除搜索</button>
+  </div>
+  <noscript><p>搜索需要 JavaScript；标签和来源页面仍可正常浏览。</p></noscript>
+</div>
+
+<script>
+  type PagefindResult = {
+    data: () => Promise<{ url: string; excerpt: string; content: string; meta: { title?: string } }>;
+  };
+  type Pagefind = {
+    search: (query: string, options?: { filters?: Record<string, string> }) => Promise<{ results: PagefindResult[] }>;
+    init?: () => Promise<void>;
+  };
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-search-root]')) {
+    const form = root.querySelector<HTMLFormElement>('form');
+    const input = root.querySelector<HTMLInputElement>('input[type="search"]');
+    const status = root.querySelector<HTMLElement>('.search-status');
+    const list = root.querySelector<HTMLOListElement>('.search-results');
+    const empty = root.querySelector<HTMLElement>('.search-empty');
+    const clear = root.querySelector<HTMLButtonElement>('[data-clear-search]');
+    let timer = 0;
+    let pagefind: Pagefind | undefined;
+
+    async function engine(): Promise<Pagefind> {
+      if (pagefind) return pagefind;
+      const moduleUrl = root.dataset.pagefindUrl ?? '';
+      pagefind = (await import(/* @vite-ignore */ moduleUrl)) as Pagefind;
+      await pagefind.init?.();
+      return pagefind;
+    }
+
+    function setQueryParam(query: string) {
+      if (root.dataset.tag) return;
+      const url = new URL(window.location.href);
+      if (query) url.searchParams.set('q', query);
+      else url.searchParams.delete('q');
+      history.replaceState({}, '', url);
+    }
+
+    function highlightedExcerpt(html: string, query: string, content: string): string {
+      const parseText = (value: string) => {
+        const parsed = document.createElement('div');
+        parsed.innerHTML = value;
+        return parsed.textContent ?? '';
+      };
+      const contentText = parseText(content);
+      const excerptText = parseText(html);
+      if (!contentText.includes(query) && !excerptText.includes(query)) return html;
+      const source = contentText.includes(query) ? contentText : excerptText;
+      const matchAt = source.indexOf(query);
+      const start = Math.max(0, matchAt - 55);
+      const end = Math.min(source.length, matchAt + query.length + 85);
+      const plain = `${start > 0 ? '…' : ''}${source.slice(start, end)}${end < source.length ? '…' : ''}`;
+      const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
+      })[character] ?? character);
+      return escape(plain).split(escape(query)).join(`<mark>${escape(query)}</mark>`);
+    }
+
+    async function runSearch() {
+      const query = input?.value.trim() ?? '';
+      setQueryParam(query);
+      if (!list || !empty || !status) return;
+      list.replaceChildren();
+      empty.hidden = true;
+      if (!query) {
+        status.textContent = '输入关键词开始搜索';
+        return;
+      }
+
+      status.textContent = '正在搜索…';
+      try {
+        const api = await engine();
+        const options = root.dataset.tag ? { filters: { tag: root.dataset.tag } } : undefined;
+        const response = await api.search(query, options);
+        const results = await Promise.all(response.results.slice(0, 40).map((result) => result.data()));
+        for (const result of results) {
+          const item = document.createElement('li');
+          const heading = document.createElement('h2');
+          const link = document.createElement('a');
+          const paragraph = document.createElement('p');
+          link.href = result.url;
+          link.textContent = result.meta.title ?? '未命名摘抄';
+          paragraph.innerHTML = highlightedExcerpt(result.excerpt, query, result.content);
+          heading.append(link);
+          item.append(heading, paragraph);
+          list.append(item);
+        }
+        status.textContent = `找到 ${results.length} 条结果`;
+        empty.hidden = results.length !== 0;
+      } catch {
+        status.textContent = '搜索索引暂时无法加载，请稍后重试。';
+      }
+    }
+
+    input?.addEventListener('input', () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(runSearch, 150);
+    });
+    form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      window.clearTimeout(timer);
+      runSearch();
+    });
+    clear?.addEventListener('click', () => {
+      if (input) input.value = '';
+      runSearch();
+      input?.focus();
+    });
+
+    const initial = new URL(window.location.href).searchParams.get('q');
+    if (initial && input && !root.dataset.tag) {
+      input.value = initial;
+      runSearch();
+    }
+  }
+</script>

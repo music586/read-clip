@@ -1,0 +1,21 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { getPublicClips } from '../../lib/clips';
+import { groupByTag } from '../../lib/tags';
+import { withBase } from '../../lib/urls';
+
+const groups = groupByTag(await getPublicClips());
+---
+
+<SiteLayout title="标签" description="按标签浏览公开阅读摘抄。" canonicalPath="/tags/">
+  <section class="page-heading">
+    <p class="eyebrow">TAGS</p>
+    <h1>标签</h1>
+    <p>沿着主题，重新发现散落的句子。</p>
+  </section>
+  <ul class="group-grid">
+    {groups.map((group) => (
+      <li><a href={withBase(`/tags/${group.key}/`)}><strong>{group.tag}</strong><span>{group.count} 条摘抄</span></a></li>
+    ))}
+  </ul>
+</SiteLayout>

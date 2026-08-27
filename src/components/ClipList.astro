@@ -1,0 +1,11 @@
+---
+import type { ClipEntry } from '../lib/clips';
+import ClipCard from './ClipCard.astro';
+
+interface Props { clips: ClipEntry[] }
+const { clips } = Astro.props;
+---
+
+<div class="clip-list">
+  {clips.map((clip) => <ClipCard clip={clip} />)}
+</div>

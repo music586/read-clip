@@ -1,0 +1,25 @@
+---
+import type { GetStaticPaths } from 'astro';
+import ClipList from '../../components/ClipList.astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { getPublicClips, type ClipEntry } from '../../lib/clips';
+import { groupBySource, type SourceGroup } from '../../lib/sources';
+
+export const getStaticPaths = (async () => {
+  const groups = groupBySource(await getPublicClips());
+  return groups.map((group) => ({ params: { key: group.key }, props: { group } }));
+}) satisfies GetStaticPaths;
+
+interface Props { group: SourceGroup<ClipEntry> }
+const { group } = Astro.props;
+---
+
+<SiteLayout title={group.source} description={`${group.source}${group.author ? `，${group.author}` : ''}的 ${group.count} 条公开摘抄。`} canonicalPath={`/sources/${group.key}/`}>
+  <section class="page-heading source-heading">
+    <p class="eyebrow">SOURCE</p>
+    <h1>{group.source}</h1>
+    {group.author && <p class="source-author">{group.author}</p>}
+    <p>{group.count} 条摘抄</p>
+  </section>
+  <ClipList clips={group.clips} />
+</SiteLayout>

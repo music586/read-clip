@@ -1,0 +1,13 @@
+---
+import Search from '../components/Search.astro';
+import SiteLayout from '../layouts/SiteLayout.astro';
+---
+
+<SiteLayout title="搜索" description="在浏览器本地全文搜索公开阅读摘抄。" canonicalPath="/search/">
+  <section class="page-heading">
+    <p class="eyebrow">SEARCH</p>
+    <h1>搜索</h1>
+    <p>查询只在你的浏览器中进行，不会发送给第三方。</p>
+  </section>
+  <Search />
+</SiteLayout>

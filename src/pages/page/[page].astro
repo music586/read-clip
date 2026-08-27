@@ -1,0 +1,27 @@
+---
+import type { GetStaticPaths } from 'astro';
+import ClipList from '../../components/ClipList.astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { getPublicClips } from '../../lib/clips';
+import { withBase } from '../../lib/urls';
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const clips = await getPublicClips();
+  return paginate(clips, { pageSize: 20 }).filter((route) => route.params.page !== '1');
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+---
+
+<SiteLayout title={`最近摘抄 · 第 ${page.currentPage} 页`} description="按时间整理的公开阅读摘抄。" canonicalPath={`/page/${page.currentPage}/`}>
+  <section class="page-heading">
+    <p class="eyebrow">TIMELINE</p>
+    <h1>最近摘抄</h1>
+    <p>第 {page.currentPage} / {page.lastPage} 页</p>
+  </section>
+  <ClipList clips={page.data} />
+  <nav class="pagination" aria-label="分页">
+    {page.url.prev && <a href={page.currentPage === 2 ? withBase('/') : page.url.prev} rel="prev">上一页</a>}
+    {page.url.next && <a href={page.url.next} rel="next">下一页</a>}
+  </nav>
+</SiteLayout>

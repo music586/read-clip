@@ -1,0 +1,36 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+import { withBase } from '../lib/urls';
+
+const items = [
+  { label: '首页', path: '/' },
+  { label: '搜索', path: '/search/' },
+  { label: '标签', path: '/tags/' },
+  { label: '来源', path: '/sources/' },
+];
+const currentPath = Astro.url.pathname;
+---
+
+<header class="site-header" data-pagefind-ignore>
+  <div class="nav-shell">
+    <a class="wordmark" href={withBase('/')} aria-label="阅读摘抄首页">
+      <span aria-hidden="true">读</span>
+      <strong>阅读摘抄</strong>
+    </a>
+    <nav aria-label="主导航">
+      <ul>
+        {items.map((item) => (
+          <li>
+            <a
+              href={withBase(item.path)}
+              aria-current={currentPath === withBase(item.path) || (item.path !== '/' && currentPath.startsWith(withBase(item.path))) ? 'page' : undefined}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <ThemeToggle />
+  </div>
+</header>

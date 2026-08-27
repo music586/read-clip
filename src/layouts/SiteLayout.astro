@@ -1,0 +1,54 @@
+---
+import Nav from '../components/Nav.astro';
+import '../styles/global.css';
+import { withBase } from '../lib/urls';
+
+interface Props {
+  title: string;
+  description: string;
+  canonicalPath: string;
+}
+
+const { title, description, canonicalPath } = Astro.props;
+const siteTitle = title === '阅读摘抄' ? title : `${title}｜阅读摘抄`;
+const canonical = new URL(withBase(canonicalPath), Astro.site ?? Astro.url.origin);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title="阅读摘抄 RSS" href={withBase('/rss.xml')} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content={siteTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <title>{siteTitle}</title>
+    <script is:inline>
+      (() => {
+        try {
+          const saved = localStorage.getItem('reading-clips-theme');
+          if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+        } catch {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">跳至正文</a>
+    <Nav />
+    <main id="content">
+      <slot />
+    </main>
+    <footer class="site-footer" data-pagefind-ignore>
+      <p>把值得重读的句子，安静地留在这里。</p>
+      <a href={withBase('/rss.xml')}>订阅 RSS</a>
+    </footer>
+  </body>
+</html>
