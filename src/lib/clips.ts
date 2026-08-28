@@ -1,20 +1,32 @@
+import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
 import { getCollection, type CollectionEntry } from 'astro:content';
 
-export type ClipEntry = CollectionEntry<'clips'>;
+export interface ClipMetadata {
+  version: 1;
+  id: string;
+  contentPath: string;
+  createdAt: string;
+  updatedAt: string;
+  title: string;
+  contentHash: string;
+  directory?: string;
+}
 
-export const publicProjection = <T extends { data: { private: boolean; createdAt: string }; id: string }>(
-  clips: T[],
-): T[] =>
-  clips
-    .filter((clip) => !clip.data.private)
-    .toSorted(
-      (a, b) =>
-        Date.parse(b.data.createdAt) - Date.parse(a.data.createdAt) || a.id.localeCompare(b.id),
-    );
+export type ClipEntry = Omit<CollectionEntry<'clips'>, 'id' | 'data'> & {
+  id: string;
+  sourceId: string;
+  data: ClipMetadata;
+};
+
+export const sortClips = <T extends { id: string; data: { createdAt: string } }>(clips: T[]): T[] =>
+  clips.toSorted(
+    (a, b) => Date.parse(b.data.createdAt) - Date.parse(a.data.createdAt) || a.id.localeCompare(b.id),
+  );
 
 export function clipPath(id: string): string {
-  const path = id.replace(/\.(?:md|mdx)$/i, '');
-  return `/clips/${path.split('/').filter(Boolean).map(encodeURIComponent).join('/')}/`;
+  return `/clips/${encodeURIComponent(id)}/`;
 }
 
 export function excerpt(body: string, limit = 150): string {
@@ -28,32 +40,30 @@ export function excerpt(body: string, limit = 150): string {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-
-  if (plain.length <= limit) return plain;
-  return `${plain.slice(0, Math.max(1, limit - 1)).trimEnd()}…`;
+  return plain.length <= limit ? plain : `${plain.slice(0, Math.max(1, limit - 1)).trimEnd()}…`;
 }
 
-export function assertValidClipBodies<T extends { id: string; body?: string }>(clips: T[]): void {
-  for (const clip of clips) {
-    if (!clip.body?.trim()) throw new Error(`Empty clip body: ${clip.id}`);
+export async function getClips(): Promise<ClipEntry[]> {
+  execFileSync(process.execPath, ['scripts/generate-metadata.mjs'], {
+    cwd: process.cwd(),
+    stdio: 'ignore',
+  });
+  const catalog = JSON.parse(
+    await readFile(resolve('.read-clip/generated/clips.json'), 'utf8'),
+  ) as { clips: ClipMetadata[] };
+  const metadataByPath = new Map(catalog.clips.map((item) => [item.contentPath, item]));
+  const entries = await getCollection('clips');
+
+  const clips = entries.map((entry) => {
+    const sourceId = entry.id.replace(/\\/g, '/');
+    const metadata = metadataByPath.get(sourceId);
+    if (!metadata) throw new Error(`Missing generated metadata: ${entry.id}`);
+    if (!entry.body?.trim()) throw new Error(`Empty clip body: ${entry.id}`);
+    return { ...entry, id: metadata.id, sourceId: entry.id, data: metadata } as ClipEntry;
+  });
+
+  if (clips.length !== catalog.clips.length) {
+    throw new Error('Generated metadata is out of sync with Markdown content');
   }
-}
-
-export function assertUniqueClipPaths<T extends { id: string }>(clips: T[]): void {
-  const paths = new Map<string, string>();
-  for (const clip of clips) {
-    const path = clipPath(clip.id).normalize('NFC').toLocaleLowerCase('en-US');
-    const existing = paths.get(path);
-    if (existing) {
-      throw new Error(`Duplicate clip path for ${existing} and ${clip.id}`);
-    }
-    paths.set(path, clip.id);
-  }
-}
-
-export async function getPublicClips(): Promise<ClipEntry[]> {
-  const clips = await getCollection('clips');
-  assertValidClipBodies(clips);
-  assertUniqueClipPaths(clips);
-  return publicProjection(clips);
+  return sortClips(clips);
 }

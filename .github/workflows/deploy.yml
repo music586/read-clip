@@ -48,9 +48,6 @@ jobs:
       - name: Build public artifacts and search index
         run: npm run build
 
-      - name: Audit private content boundary
-        run: npm run audit:private
-
       - name: Run browser acceptance tests
         run: npm run test:e2e
 

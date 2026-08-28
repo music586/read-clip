@@ -7,19 +7,21 @@
     "node": ">=22"
   },
   "scripts": {
+    "metadata": "node scripts/generate-metadata.mjs",
+    "predev": "npm run metadata",
     "dev": "astro dev",
+    "prebuild": "npm run metadata",
     "build": "astro check && astro build && pagefind --site dist --output-subdir _pagefind",
     "preview": "astro preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check": "astro check && vitest run",
-    "audit:private": "node scripts/audit-private-output.mjs dist src/content/clips"
+    "precheck": "npm run metadata",
+    "check": "astro check && vitest run"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.3",
-    "astro": "^5.18.2",
-    "gray-matter": "^4.0.3"
+    "astro": "^5.18.2"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

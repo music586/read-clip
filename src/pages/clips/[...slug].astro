@@ -2,27 +2,17 @@
 import type { GetStaticPaths } from 'astro';
 import { render } from 'astro:content';
 import SiteLayout from '../../layouts/SiteLayout.astro';
-import ClipList from '../../components/ClipList.astro';
-import { clipPath, excerpt, getPublicClips, type ClipEntry } from '../../lib/clips';
+import { clipPath, excerpt, getClips, type ClipEntry } from '../../lib/clips';
 import { formatDate } from '../../lib/date';
-import { groupBySource, sourceKey } from '../../lib/sources';
-import { tagKey } from '../../lib/tags';
-import { withBase } from '../../lib/urls';
 
 export const getStaticPaths = (async () => {
-  const clips = await getPublicClips();
-  return clips.map((clip) => ({
-    params: { slug: clip.id.replace(/\.(?:md|mdx)$/i, '') },
-    props: { clip, allClips: clips },
-  }));
+  const clips = await getClips();
+  return clips.map((clip) => ({ params: { slug: clip.id }, props: { clip } }));
 }) satisfies GetStaticPaths;
 
-interface Props { clip: ClipEntry; allClips: ClipEntry[] }
-const { clip, allClips } = Astro.props;
+interface Props { clip: ClipEntry }
+const { clip } = Astro.props;
 const { Content } = await render(clip);
-const key = sourceKey(clip.data);
-const sourceGroup = groupBySource(allClips).find((group) => group.key === key);
-const related = (sourceGroup?.clips ?? []).filter((item) => item.id !== clip.id).slice(0, 5);
 const canonicalPath = clipPath(clip.id);
 ---
 
@@ -33,36 +23,15 @@ const canonicalPath = clipPath(clip.id);
       <h1 data-pagefind-meta="title">{clip.data.title}</h1>
       <div class="clip-meta detail-meta">
         <time datetime={clip.data.createdAt}>{formatDate(clip.data.createdAt)}</time>
-        <span aria-hidden="true">·</span>
-        <a data-pagefind-meta="source" href={withBase(`/sources/${key}/`)}>{clip.data.source}</a>
-        {clip.data.author && <span data-pagefind-meta="author">，{clip.data.author}</span>}
       </div>
-      {clip.data.tags.length > 0 && (
-        <ul class="tag-list" aria-label="标签">
-          {clip.data.tags.map((tag) => (
-            <li data-pagefind-filter={`tag:${tag}`}><a href={withBase(`/tags/${tagKey(tag)}/`)}>#{tag}</a></li>
-          ))}
-        </ul>
-      )}
     </header>
     <div class="prose"><Content /></div>
     <div class="detail-actions" data-pagefind-ignore>
-      {clip.data.url && <a class="button-link" href={clip.data.url} rel="noopener noreferrer">查看原文 ↗</a>}
       <button type="button" data-copy-text={clip.body ?? ''}>复制摘抄正文</button>
       <button type="button" data-copy-link>复制当前页面链接</button>
       <span class="copy-status" aria-live="polite"></span>
     </div>
   </article>
-
-  {related.length > 0 && (
-    <section class="related" data-pagefind-ignore>
-      <div class="section-title">
-        <p class="eyebrow">MORE FROM THIS SOURCE</p>
-        <h2>同一来源的其他摘抄</h2>
-      </div>
-      <ClipList clips={related} />
-    </section>
-  )}
 </SiteLayout>
 
 <script>

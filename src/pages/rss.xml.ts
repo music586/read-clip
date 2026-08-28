@@ -1,10 +1,10 @@
 import rss from '@astrojs/rss';
 import type { APIRoute } from 'astro';
-import { clipPath, excerpt, getPublicClips } from '../lib/clips';
+import { clipPath, excerpt, getClips } from '../lib/clips';
 import { withBase } from '../lib/urls';
 
 export const GET: APIRoute = async (context) => {
-  const clips = await getPublicClips();
+  const clips = await getClips();
   return rss({
     title: '阅读摘抄',
     description: '按时间整理的公开阅读摘抄。',
@@ -13,7 +13,7 @@ export const GET: APIRoute = async (context) => {
       title: clip.data.title,
       pubDate: new Date(clip.data.createdAt),
       link: withBase(clipPath(clip.id)),
-      description: `${clip.data.source}${clip.data.author ? `，${clip.data.author}` : ''} — ${excerpt(clip.body ?? '', 240)}`,
+      description: excerpt(clip.body ?? '', 240),
     })),
     customData: '<language>zh-CN</language>',
   });

@@ -1,10 +1,10 @@
 ---
 import ClipList from '../components/ClipList.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
-import { getPublicClips } from '../lib/clips';
+import { getClips } from '../lib/clips';
 import { withBase } from '../lib/urls';
 
-const clips = await getPublicClips();
+const clips = await getClips();
 const pageSize = 20;
 const firstPage = clips.slice(0, pageSize);
 const totalPages = Math.ceil(clips.length / pageSize);
@@ -12,11 +12,11 @@ const totalPages = Math.ceil(clips.length / pageSize);
 
 <SiteLayout title="阅读摘抄" description="按时间整理的公开阅读摘抄。" canonicalPath="/">
   <section class="page-heading hero">
-    <p class="eyebrow">READING NOTES</p>
-    <h1>最近摘抄</h1>
+    <p class="eyebrow">共 {clips.length} 条摘抄</p>
+    <h1>阅读摘抄</h1>
     <p>从书页与文章中，收集那些值得再读一次的思想。</p>
   </section>
-  {firstPage.length > 0 ? <ClipList clips={firstPage} /> : <p class="empty-state">还没有公开摘抄。</p>}
+  {firstPage.length > 0 ? <ClipList clips={firstPage} /> : <p class="empty-state">还没有摘抄。</p>}
   {totalPages > 1 && (
     <nav class="pagination" aria-label="分页">
       <a href={withBase('/page/2/')} rel="next">下一页</a>

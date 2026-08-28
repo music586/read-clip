@@ -1,65 +1,65 @@
 # 阅读摘抄
 
-一个以 Markdown 为内容源的静态阅读摘抄站。Astro 负责内容校验与页面生成，Pagefind 在构建后创建浏览器本地全文索引；公开页面不需要数据库或常驻服务器。
+一个以纯 Markdown 为内容源的静态阅读摘抄站。正文不使用 Frontmatter；系统根据文件路径与文件信息自动生成标题、时间、ID、目录信息和内容哈希。
 
-## 本地使用
+## 新增摘抄
 
-需要 Node.js 22 或更高版本。
+在 `src/content/clips/` 内任意位置创建 `.md` 或 `.mdx` 文件。目录层级和文件名没有固定格式，例如：
+
+```text
+src/content/clips/随手记录.md
+src/content/clips/如何阅读一本书/主动阅读.md
+src/content/clips/inbox/网页摘抄.md
+```
+
+文件中只写正文：
+
+```markdown
+真正的阅读，是读者与作者共同参与的一种思考活动。
+```
+
+也可以使用一级标题；系统会优先把第一个 Markdown 标题作为站点标题，否则使用文件名。目录只作为客观文件信息记录，不会被猜测成书籍或文章来源。
+
+QuickAdd 模板位于 `templates/clip.md`，模板只写入剪贴板正文。
+
+## 自动元数据
+
+运行：
+
+```bash
+npm run metadata
+```
+
+系统扫描所有正文并生成 `.read-clip/generated/clips.json`。该目录是可重建产物，已被 Git 忽略，不需要人工编辑或提交。生成字段包括：
+
+- 基于相对路径的 16 位稳定 ID
+- 相对正文路径
+- Git 首次提交时间；未提交文件使用文件创建时间
+- 文件修改时间
+- Markdown 标题或文件名生成的标题
+- 正文 SHA-256 哈希
+- 正文相对目录
+
+ID 由相对路径确定，因此正文内容修改不会改变链接；移动或重命名文件会产生新的公开链接。
+
+`npm run dev`、`npm run check` 和 `npm run build` 都会自动生成元数据。开发服务器运行期间，通过 Obsidian 或其他编辑器新增、移动或重命名正文时，下一次页面请求也会自动刷新索引，无需重启服务。完全相同的正文或空正文会阻止构建。
+
+## 本地运行
+
+需要 Node.js 22 或更高版本：
 
 ```bash
 npm ci
 npm run dev
 npm run check
 npm run build
-npm run audit:private
 npm run test:e2e
 ```
 
-`npm run build` 会依次执行 Astro 类型与内容检查、生成静态页面，并在 `dist/_pagefind/` 创建搜索索引。
+站点保留时间流、摘抄详情、全文搜索、RSS、复制操作和深浅主题。标签、来源书架、作者筛选及私密发布已移除，以避免需要人工维护元数据。当前仓库公开，请勿提交敏感内容。
 
-## 新增摘抄
+## GitHub Pages
 
-复制 `src/content/clips/_template.md.example`，并按日期放入 `src/content/clips/YYYY/MM/`。推荐文件名为 `YYYY-MM-DD-short-title.md`。一个文件只保存一条摘抄，Markdown 正文不能为空。
+仓库 Settings → Pages → Build and deployment 的 Source 必须设为 `GitHub Actions`。推送到 `main` 后，工作流会检查内容、运行测试、构建 Pagefind 搜索索引并发布 `dist/`。
 
-```markdown
----
-title: "阅读也是一种思考"
-source: "如何阅读一本书"
-author: "莫提默·J·艾德勒"
-url: "https://example.com/book"
-tags:
-  - 阅读
-  - 学习方法
-createdAt: "2026-08-28T20:30:00+08:00"
-private: false
----
-
-真正的阅读，是读者与作者共同参与的一种思考活动。
-```
-
-`title`、`source`、`createdAt` 和正文必填。`createdAt` 必须是带明确时区的 ISO 日期时间，例如 `2026-08-28T20:30:00+08:00` 或 `2026-08-28T12:30:00Z`；仅写日期或省略时区会使构建失败。`author`、`url`、`tags` 可省略，`private` 默认是 `false`。
-
-摘抄的公开 URL 来自文件相对于 `src/content/clips/` 的路径。移动或重命名已发布文件会改变公开 URL；需要调整时应另行维护重定向。
-
-## 私密内容边界
-
-`private: true` 会在页面、标签、来源、RSS、站点地图和 Pagefind 索引生成前排除该摘抄，构建后还会扫描公开产物。但本仓库是公开仓库，任何人仍能直接查看其中的 Markdown 源文件。因此 `private: true` 仅表示“不展示在站点中”，不能用于保存敏感或真正私密的内容。
-
-## GitHub Pages 部署
-
-本项目直接从当前公开仓库发布，不需要 Personal Access Token、Actions secrets 或额外的发布仓库。
-
-1. 进入仓库 Settings → Pages。
-2. 在 Build and deployment 中将 Source 设为 `GitHub Actions`。
-3. 推送到 `main`，或手动运行 “Verify and publish public site” 工作流。
-
-工作流只有在内容校验、单元测试、生产构建、隐私审计和浏览器测试全部通过后，才会上传 `dist/` 并部署。GitHub 自动提供短期 `GITHUB_TOKEN`，站点地址为 `https://music586.github.io/read-clip/`。
-
-## 排查失败
-
-- 内容错误：运行 `npm run check`，终端会指出无效文件与字段；重点检查必填字段、URL、日期时区和空正文。
-- 路径冲突：两个 Markdown/MDX 文件映射到同一 URL 时会列出两者 ID，重命名其中一个。
-- 隐私审计失败：日志只显示私密内容文件 ID 和泄漏产物文件名，不显示私密文本。检查是否绕过了 `getPublicClips()`。
-- 搜索测试失败：先确认 `npm run build` 已生成 `dist/_pagefind/`，再运行端到端测试。
-- 子路径资源 404：当前发布路径固定为 `/read-clip`；仓库重命名后需要同步修改工作流中的 `BASE_PATH`。
-- 部署失败：确认 Settings → Pages → Source 已设为 `GitHub Actions`，并检查工作流的 `pages: write` 与 `id-token: write` 权限。
+站点地址：`https://music586.github.io/read-clip/`。
