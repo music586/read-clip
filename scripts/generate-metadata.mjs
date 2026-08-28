@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const clipsRoot = join(projectRoot, 'src/content/clips');
 const outputFile = join(projectRoot, '.read-clip/generated/clips.json');
+const tagsFile = join(projectRoot, 'src/data/tags.json');
 
 export const normalizeBody = (body) => body.replace(/\r\n?/g, '\n').trim();
 
@@ -59,12 +60,20 @@ function gitCreatedAt(absolutePath) {
 
 export async function generateMetadata({ root = clipsRoot, output = outputFile } = {}) {
   const files = await markdownFiles(root);
+  let tagsByPath = {};
+  try {
+    tagsByPath = JSON.parse(await readFile(tagsFile, 'utf8'));
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
   const clips = [];
   const hashes = new Map();
 
   for (const absolutePath of files.toSorted()) {
     const body = await readFile(absolutePath, 'utf8');
-    if (!normalizeBody(body)) throw new Error(`Empty clip body: ${relative(projectRoot, absolutePath)}`);
+    // Editors such as Obsidian create the file before inserting clipboard content.
+    // Treat that short-lived empty state as a draft and include it on the next scan.
+    if (!normalizeBody(body)) continue;
     const contentPath = relative(root, absolutePath).split(sep).join('/');
     const hash = contentHash(body);
     const duplicate = hashes.get(hash);
@@ -79,6 +88,7 @@ export async function generateMetadata({ root = clipsRoot, output = outputFile }
       updatedAt: info.mtime.toISOString(),
       title: titleFrom(body, contentPath),
       contentHash: hash,
+      tags: Array.isArray(tagsByPath[contentPath]) ? [...new Set(tagsByPath[contentPath].map(String).map((tag) => tag.trim()).filter(Boolean))].toSorted() : [],
       ...(directoryFrom(contentPath) ? { directory: directoryFrom(contentPath) } : {}),
     });
   }

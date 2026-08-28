@@ -2,6 +2,7 @@
 import type { ClipEntry } from '../lib/clips';
 import { clipPath, excerpt } from '../lib/clips';
 import { formatDate } from '../lib/date';
+import { tagPath } from '../lib/tags';
 import { withBase } from '../lib/urls';
 
 interface Props {
@@ -13,8 +14,9 @@ const { clip } = Astro.props;
 
 <article class="clip-card">
   <div class="clip-meta">
-    <time datetime={clip.data.createdAt}>{formatDate(clip.data.createdAt)}</time>
+    <time datetime={clip.data.createdAt} title="创建时间">{formatDate(clip.data.createdAt)}</time>
   </div>
   <h2><a href={withBase(clipPath(clip.id))}>{clip.data.title}</a></h2>
   <p class="clip-excerpt">{excerpt(clip.body ?? '')}</p>
+  {clip.data.tags.length > 0 && <ul class="tag-list" aria-label="标签">{clip.data.tags.map((tag) => <li><a href={withBase(tagPath(tag))}>{tag}</a></li>)}</ul>}
 </article>

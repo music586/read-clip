@@ -45,6 +45,18 @@ describe('metadata generation', () => {
     );
   });
 
+  it('ignores an empty draft until an editor writes its body', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'read-clip-'));
+    const output = join(root, '.generated', 'clips.json');
+    await writeFile(join(root, '未命名.md'), '  \n');
+
+    expect(await generateMetadata({ root, output })).toEqual([]);
+    await writeFile(join(root, '未命名.md'), '# 已完成的摘抄\n\n正文');
+    expect(await generateMetadata({ root, output })).toMatchObject([
+      { contentPath: '未命名.md', title: '已完成的摘抄' },
+    ]);
+  });
+
   it('includes a Markdown file added after an earlier metadata pass', async () => {
     const root = await mkdtemp(join(tmpdir(), 'read-clip-'));
     const output = join(root, '.generated', 'clips.json');

@@ -1,0 +1,112 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { getClips } from '../lib/clips';
+import { formatDate } from '../lib/date';
+
+const clips = await getClips();
+const allTags = [...new Set(clips.flatMap((clip) => clip.data.tags))].toSorted();
+---
+
+<SiteLayout title="文章管理" description="在本地为 Markdown 摘抄维护标签。" canonicalPath="/admin/">
+  <section class="admin-heading">
+    <div>
+      <p class="eyebrow">本地管理</p>
+      <h1>文章标签</h1>
+      <p>标签独立保存，Markdown 正文不会被修改。</p>
+    </div>
+    <div class="admin-summary"><strong>{clips.length}</strong><span>篇文章</span><strong data-tag-count>{allTags.length}</strong><span>个标签</span></div>
+  </section>
+
+  <section class="admin-toolbar" aria-label="文章筛选">
+    <label><span>搜索文章</span><input type="search" data-admin-search placeholder="标题、路径或标签" autocomplete="off" /></label>
+    <button type="button" class="admin-save" data-admin-save disabled>保存标签</button>
+  </section>
+  <p class="admin-notice" data-admin-status aria-live="polite">修改标签后保存到 src/data/tags.json</p>
+
+  <datalist id="known-tags">
+    {allTags.map((tag) => <option value={tag}></option>)}
+  </datalist>
+
+  <div class="admin-list" data-admin-list>
+    {clips.map((clip) => (
+      <article class="admin-row" data-path={clip.data.contentPath} data-search={`${clip.data.title} ${clip.data.contentPath} ${clip.data.tags.join(' ')}`.toLocaleLowerCase('zh-CN')}>
+        <div class="admin-article">
+          <time datetime={clip.data.createdAt}>{formatDate(clip.data.createdAt)}</time>
+          <h2>{clip.data.title}</h2>
+          <code>{clip.data.contentPath}</code>
+        </div>
+        <label class="admin-tags">
+          <span>标签</span>
+          <input type="text" list="known-tags" value={clip.data.tags.join(', ')} placeholder="用逗号分隔多个标签" data-tags-input />
+        </label>
+      </article>
+    ))}
+  </div>
+  <p class="empty-state" data-admin-empty hidden>没有匹配的文章。</p>
+</SiteLayout>
+
+<script>
+  const rows = [...document.querySelectorAll<HTMLElement>('.admin-row')];
+  const search = document.querySelector<HTMLInputElement>('[data-admin-search]');
+  const save = document.querySelector<HTMLButtonElement>('[data-admin-save]');
+  const status = document.querySelector<HTMLElement>('[data-admin-status]');
+  const empty = document.querySelector<HTMLElement>('[data-admin-empty]');
+  let dirty = false;
+
+  function tags(value: string) {
+    return [...new Set(value.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean))];
+  }
+
+  function updateFilter() {
+    const query = search?.value.trim().toLocaleLowerCase('zh-CN') ?? '';
+    let visible = 0;
+    for (const row of rows) {
+      const input = row.querySelector<HTMLInputElement>('[data-tags-input]');
+      const haystack = `${row.dataset.search} ${input?.value ?? ''}`.toLocaleLowerCase('zh-CN');
+      row.hidden = Boolean(query && !haystack.includes(query));
+      if (!row.hidden) visible += 1;
+    }
+    if (empty) empty.hidden = visible > 0;
+  }
+
+  search?.addEventListener('input', updateFilter);
+  for (const input of document.querySelectorAll<HTMLInputElement>('[data-tags-input]')) {
+    input.addEventListener('input', () => {
+      dirty = true;
+      if (save) save.disabled = false;
+      if (status) status.textContent = '有尚未保存的标签修改';
+      updateFilter();
+    });
+  }
+
+  save?.addEventListener('click', async () => {
+    if (!dirty) return;
+    save.disabled = true;
+    save.textContent = '保存中…';
+    const payload = Object.fromEntries(rows.flatMap((row) => {
+      const path = row.dataset.path;
+      const input = row.querySelector<HTMLInputElement>('[data-tags-input]');
+      const values = tags(input?.value ?? '');
+      return path && values.length ? [[path, values]] : [];
+    }));
+    try {
+      const response = await fetch('/__read-clip/admin/tags', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error('当前页面不可写，请使用 npm run dev 打开本地管理页');
+      dirty = false;
+      if (status) status.textContent = '标签已保存，页面内容将自动刷新';
+    } catch (error) {
+      if (status) status.textContent = error instanceof Error ? error.message : '保存失败';
+      save.disabled = false;
+    } finally {
+      save.textContent = '保存标签';
+    }
+  });
+
+  addEventListener('beforeunload', (event) => {
+    if (dirty) event.preventDefault();
+  });
+</script>

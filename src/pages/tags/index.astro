@@ -1,0 +1,31 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { getClips } from '../../lib/clips';
+import { groupByTag, tagPath } from '../../lib/tags';
+import { withBase } from '../../lib/urls';
+
+const groups = groupByTag(await getClips());
+const taggedCount = new Set(groups.flatMap((group) => group.clips.map((clip) => clip.id))).size;
+---
+
+<SiteLayout title="标签分类" description="按照标签浏览阅读摘抄。" canonicalPath="/tags/">
+  <section class="page-heading">
+    <p class="eyebrow">{groups.length} 个标签 · {taggedCount} 篇文章</p>
+    <h1>标签分类</h1>
+    <p>从主题出发，重新发现收藏过的内容。</p>
+  </section>
+  {groups.length > 0 ? (
+    <nav class="tag-directory" aria-label="标签分类">
+      <ul>
+        {groups.map((group) => (
+          <li>
+            <a href={withBase(tagPath(group.tag))}>
+              <span>{group.tag}</span>
+              <small>{group.count} 篇</small>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  ) : <p class="empty-state">还没有为文章添加标签。请先在本地管理页中打标。</p>}
+</SiteLayout>

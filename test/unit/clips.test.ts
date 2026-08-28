@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { clipPath, excerpt, sortClips } from '../../src/lib/clips';
 
 describe('clip helpers', () => {
-  it('sorts clips newest first and resolves ties by id', () => {
+  it('sorts clips by creation time newest first and resolves ties by id', () => {
     const clips = [
       { id: 'z', data: { createdAt: '2026-01-01T00:00:00Z' } },
       { id: 'old', data: { createdAt: '2025-01-01T00:00:00Z' } },

@@ -4,6 +4,8 @@ import { render } from 'astro:content';
 import SiteLayout from '../../layouts/SiteLayout.astro';
 import { clipPath, excerpt, getClips, type ClipEntry } from '../../lib/clips';
 import { formatDate } from '../../lib/date';
+import { tagPath } from '../../lib/tags';
+import { withBase } from '../../lib/urls';
 
 export const getStaticPaths = (async () => {
   const clips = await getClips();
@@ -14,24 +16,40 @@ interface Props { clip: ClipEntry }
 const { clip } = Astro.props;
 const { Content } = await render(clip);
 const canonicalPath = clipPath(clip.id);
+const primaryTag = clip.data.tags[0];
 ---
 
 <SiteLayout title={clip.data.title} description={excerpt(clip.body ?? '', 160)} canonicalPath={canonicalPath}>
-  <article class="clip-detail" data-pagefind-body>
+  <div class="clip-detail">
+    <nav class="breadcrumbs" aria-label="面包屑导航" data-pagefind-ignore>
+      <ol>
+        <li><a href={withBase('/')}>首页</a></li>
+        {primaryTag ? (
+          <>
+            <li><a href={withBase('/tags/')}>分类</a></li>
+            <li aria-current="page">{primaryTag}</li>
+          </>
+        ) : <li aria-current="page">全部文章</li>}
+      </ol>
+    </nav>
     <header class="detail-header">
-      <p class="eyebrow">CLIP</p>
       <h1 data-pagefind-meta="title">{clip.data.title}</h1>
       <div class="clip-meta detail-meta">
-        <time datetime={clip.data.createdAt}>{formatDate(clip.data.createdAt)}</time>
+        <time datetime={clip.data.createdAt} title="创建时间">{formatDate(clip.data.createdAt)}</time>
       </div>
+      {clip.data.tags.length > 0 && (
+        <nav class="detail-tags" aria-label="文章标签" data-pagefind-ignore>
+          <ul class="tag-list">{clip.data.tags.map((tag) => <li><a href={withBase(tagPath(tag))}>{tag}</a></li>)}</ul>
+        </nav>
+      )}
     </header>
-    <div class="prose"><Content /></div>
+    <article class="prose" data-pagefind-body><Content /></article>
     <div class="detail-actions" data-pagefind-ignore>
       <button type="button" data-copy-text={clip.body ?? ''}>复制摘抄正文</button>
       <button type="button" data-copy-link>复制当前页面链接</button>
       <span class="copy-status" aria-live="polite"></span>
     </div>
-  </article>
+  </div>
 </SiteLayout>
 
 <script>

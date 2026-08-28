@@ -7,7 +7,7 @@ export const GET: APIRoute = async (context) => {
   const clips = await getClips();
   return rss({
     title: '阅读摘抄',
-    description: '按时间整理的公开阅读摘抄。',
+    description: '按创建时间从新到旧整理的公开阅读摘抄。',
     site: context.site ?? context.url.origin,
     items: clips.map((clip) => ({
       title: clip.data.title,

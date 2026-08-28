@@ -36,9 +36,33 @@ test('search offers to clear an empty result', async ({ page }) => {
   await expect(page.getByRole('button', { name: '清除搜索' })).toBeVisible();
 });
 
+test('tag directory opens a creation-time-sorted classification', async ({ page }) => {
+  await page.goto(path('/tags/'));
+  await expect(page.getByRole('heading', { name: '标签分类' })).toBeVisible();
+  const firstTag = page.locator('.tag-directory a').first();
+  await expect(firstTag).toBeVisible();
+  await firstTag.click();
+  await expect(page.getByText('按创建时间从新到旧排列。')).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`${base}/tags/[\\w-]+/$`));
+});
+
+test('article tags stay outside the reader-mode article body', async ({ page }) => {
+  await page.goto(path('/tags/'));
+  await page.locator('.tag-directory a').first().click();
+  await page.locator('.clip-card h2 a').first().click();
+  const breadcrumbs = page.getByRole('navigation', { name: '面包屑导航' });
+  await expect(breadcrumbs).toBeVisible();
+  await expect(breadcrumbs.getByRole('link', { name: '首页' })).toHaveAttribute('href', path('/'));
+  await expect(breadcrumbs.getByRole('link', { name: '分类' })).toHaveAttribute('href', path('/tags/'));
+  await expect(page.locator('article.prose[data-pagefind-body] .breadcrumbs')).toHaveCount(0);
+  await expect(page.locator('.detail-tags[data-pagefind-ignore]')).toBeVisible();
+  await expect(page.locator('article.prose[data-pagefind-body] .tag-list')).toHaveCount(0);
+});
+
 test('navigation stays under the configured Pages subpath', async ({ page }) => {
   test.skip(!base, 'only relevant when BASE_PATH is configured');
   await page.goto(path('/'));
-  await expect(page.getByRole('link', { name: '搜索' })).toHaveAttribute('href', `${base}/search/`);
+  await expect(page.getByRole('link', { name: '分类', exact: true })).toHaveAttribute('href', `${base}/tags/`);
+  await expect(page.getByRole('link', { name: '搜索', exact: true })).toHaveAttribute('href', `${base}/search/`);
   await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', new RegExp(`${base}/`));
 });

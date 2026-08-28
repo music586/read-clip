@@ -4,6 +4,7 @@ import { withBase } from '../lib/urls';
 
 const items = [
   { label: '首页', path: '/' },
+  { label: '分类', path: '/tags/' },
   { label: '搜索', path: '/search/' },
 ];
 const currentPath = Astro.url.pathname;
@@ -12,7 +13,7 @@ const currentPath = Astro.url.pathname;
 <header class="site-header" data-pagefind-ignore>
   <div class="nav-shell">
     <a class="wordmark" href={withBase('/')} aria-label="阅读摘抄首页">
-      <span aria-hidden="true">读</span>
+      <span class="brand-mark" aria-hidden="true"><span>读</span></span>
       <strong>阅读摘抄</strong>
     </a>
     <nav aria-label="主导航">

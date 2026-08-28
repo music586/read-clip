@@ -1,0 +1,22 @@
+---
+import type { GetStaticPaths } from 'astro';
+import ClipList from '../../components/ClipList.astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { getClips } from '../../lib/clips';
+import { groupByTag, tagPath, type TagGroup } from '../../lib/tags';
+
+export const getStaticPaths = (async () =>
+  groupByTag(await getClips()).map((group) => ({ params: { tag: group.key }, props: { group } }))) satisfies GetStaticPaths;
+
+interface Props { group: TagGroup }
+const { group } = Astro.props;
+---
+
+<SiteLayout title={`标签：${group.tag}`} description={`${group.tag}分类下的 ${group.count} 篇阅读摘抄。`} canonicalPath={tagPath(group.tag)}>
+  <section class="page-heading">
+    <p class="eyebrow">标签分类</p>
+    <h1>{group.tag}</h1>
+    <p>{group.count} 篇文章，按创建时间从新到旧排列。</p>
+  </section>
+  <ClipList clips={group.clips} />
+</SiteLayout>

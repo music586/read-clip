@@ -11,6 +11,7 @@ export interface ClipMetadata {
   updatedAt: string;
   title: string;
   contentHash: string;
+  tags: string[];
   directory?: string;
 }
 
@@ -54,12 +55,12 @@ export async function getClips(): Promise<ClipEntry[]> {
   const metadataByPath = new Map(catalog.clips.map((item) => [item.contentPath, item]));
   const entries = await getCollection('clips');
 
-  const clips = entries.map((entry) => {
+  const clips = entries.flatMap((entry) => {
     const sourceId = entry.id.replace(/\\/g, '/');
     const metadata = metadataByPath.get(sourceId);
+    if (!entry.body?.trim()) return [];
     if (!metadata) throw new Error(`Missing generated metadata: ${entry.id}`);
-    if (!entry.body?.trim()) throw new Error(`Empty clip body: ${entry.id}`);
-    return { ...entry, id: metadata.id, sourceId: entry.id, data: metadata } as ClipEntry;
+    return [{ ...entry, id: metadata.id, sourceId: entry.id, data: metadata } as ClipEntry];
   });
 
   if (clips.length !== catalog.clips.length) {

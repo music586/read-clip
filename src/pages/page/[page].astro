@@ -13,9 +13,9 @@ export const getStaticPaths = (async ({ paginate }) => {
 const { page } = Astro.props;
 ---
 
-<SiteLayout title={`最近摘抄 · 第 ${page.currentPage} 页`} description="按时间整理的公开阅读摘抄。" canonicalPath={`/page/${page.currentPage}/`}>
+<SiteLayout title={`最近摘抄 · 第 ${page.currentPage} 页`} description="按创建时间从新到旧整理的公开阅读摘抄。" canonicalPath={`/page/${page.currentPage}/`}>
   <section class="page-heading">
-    <p class="eyebrow">TIMELINE</p>
+    <p class="eyebrow">按创建时间排序</p>
     <h1>最近摘抄</h1>
     <p>第 {page.currentPage} / {page.lastPage} 页</p>
   </section>
