@@ -267,6 +267,8 @@ main { width: min(var(--layout-width), calc(100% - 2rem)); min-height: 72vh; mar
   .home-intro { grid-template-columns: 1fr; gap: .55rem; padding-top: 2.75rem; }
   .home-intro h1 { font-size: 1.75rem; }
   .clip-card { padding-block: 2rem; }
+  .home-intro + .clip-list .clip-card { position: relative; cursor: pointer; }
+  .home-intro + .clip-list .clip-card h2 a::after { content: ''; position: absolute; inset: 0; }
   .search-input-row { align-items: stretch; }
 }
 

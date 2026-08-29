@@ -13,6 +13,17 @@ test('timeline links to a readable pure-Markdown clip', async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`${base}/clips/[a-f0-9]{16}/$`));
 });
 
+test('mobile timeline cards link from the excerpt area', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith('mobile'), 'only relevant on mobile');
+  await page.goto(path('/'));
+
+  const excerptBox = await page.locator('.clip-card .clip-excerpt').first().boundingBox();
+  expect(excerptBox).not.toBeNull();
+  await page.mouse.click(excerptBox!.x + excerptBox!.width / 2, excerptBox!.y + excerptBox!.height / 2);
+
+  await expect(page).toHaveURL(new RegExp(`${base}/clips/[a-f0-9]{16}/$`));
+});
+
 test('search finds Chinese clip content and highlights the query', async ({ page }) => {
   await page.goto(path('/search/'));
   await page.getByRole('searchbox', { name: '搜索摘抄' }).fill('真正的阅读');
