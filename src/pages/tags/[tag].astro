@@ -13,10 +13,10 @@ const { group } = Astro.props;
 ---
 
 <SiteLayout title={`标签：${group.tag}`} description={`${group.tag}分类下的 ${group.count} 篇阅读摘抄。`} canonicalPath={tagPath(group.tag)}>
-  <section class="page-heading">
-    <p class="eyebrow">标签分类</p>
+  <section class="page-heading taxonomy-heading">
+    <p class="eyebrow">分类</p>
     <h1>{group.tag}</h1>
-    <p>{group.count} 篇文章，按创建时间从新到旧排列。</p>
+    <p>{group.count} 篇，按创建时间排列。</p>
   </section>
-  <ClipList clips={group.clips} />
+  <div class="taxonomy-clips"><ClipList clips={group.clips} /></div>
 </SiteLayout>

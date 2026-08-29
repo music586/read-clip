@@ -36,6 +36,10 @@ describe('metadata generation', () => {
     expect(directoryFrom('文件名称.md')).toBeUndefined();
   });
 
+  it('recognizes a Setext heading as the generated title', () => {
+    expect(titleFrom('自动标题\n========\n\n正文', '备用文件名.md')).toBe('自动标题');
+  });
+
   it('rejects duplicate normalized content', async () => {
     const root = await mkdtemp(join(tmpdir(), 'read-clip-'));
     await writeFile(join(root, 'a.md'), '相同正文\n');

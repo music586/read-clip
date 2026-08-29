@@ -16,7 +16,6 @@ interface Props { clip: ClipEntry }
 const { clip } = Astro.props;
 const { Content } = await render(clip);
 const canonicalPath = clipPath(clip.id);
-const primaryTag = clip.data.tags[0];
 ---
 
 <SiteLayout title={clip.data.title} description={excerpt(clip.body ?? '', 160)} canonicalPath={canonicalPath}>
@@ -24,12 +23,7 @@ const primaryTag = clip.data.tags[0];
     <nav class="breadcrumbs" aria-label="面包屑导航" data-pagefind-ignore>
       <ol>
         <li><a href={withBase('/')}>首页</a></li>
-        {primaryTag ? (
-          <>
-            <li><a href={withBase('/tags/')}>分类</a></li>
-            <li aria-current="page">{primaryTag}</li>
-          </>
-        ) : <li aria-current="page">全部文章</li>}
+        <li><a href={withBase('/tags/')}>分类</a></li>
       </ol>
     </nav>
     <header class="detail-header">
@@ -44,26 +38,5 @@ const primaryTag = clip.data.tags[0];
       )}
     </header>
     <article class="prose" data-pagefind-body><Content /></article>
-    <div class="detail-actions" data-pagefind-ignore>
-      <button type="button" data-copy-text={clip.body ?? ''}>复制摘抄正文</button>
-      <button type="button" data-copy-link>复制当前页面链接</button>
-      <span class="copy-status" aria-live="polite"></span>
-    </div>
   </div>
 </SiteLayout>
-
-<script>
-  const status = document.querySelector<HTMLElement>('.copy-status');
-  async function copy(value: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      if (status) status.textContent = '已复制';
-    } catch {
-      if (status) status.textContent = '复制失败，请手动复制';
-    }
-  }
-  document.querySelector<HTMLButtonElement>('[data-copy-text]')?.addEventListener('click', (event) => {
-    copy((event.currentTarget as HTMLButtonElement).dataset.copyText ?? '');
-  });
-  document.querySelector<HTMLButtonElement>('[data-copy-link]')?.addEventListener('click', () => copy(window.location.href));
-</script>

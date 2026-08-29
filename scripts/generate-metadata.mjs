@@ -16,11 +16,14 @@ export function metadataId(contentPath) {
 }
 
 export function titleFrom(body, contentPath) {
-  const heading = normalizeBody(body).match(/^#{1,6}\s+(.+)$/m)?.[1]?.trim();
-  if (heading) return heading.replace(/\s+#+$/, '').trim();
+  const normalized = normalizeBody(body);
+  const atxHeading = normalized.match(/^#{1,6}\s+(.+)$/m)?.[1]?.trim();
+  if (atxHeading) return atxHeading.replace(/\s+#+$/, '').trim();
+  const setextHeading = normalized.match(/^([^\n]+)\n(?:=+|-+)\s*$/m)?.[1]?.trim();
+  if (setextHeading) return setextHeading;
   const fileTitle = basename(contentPath, extname(contentPath)).replace(/[-_]+/g, ' ').trim();
   if (fileTitle) return fileTitle;
-  const firstSentence = normalizeBody(body).split(/(?<=[。！？.!?])\s*|\n+/)[0]?.trim();
+  const firstSentence = normalized.split(/(?<=[。！？.!?])\s*|\n+/)[0]?.trim();
   return firstSentence?.slice(0, 40) || '未命名摘抄';
 }
 

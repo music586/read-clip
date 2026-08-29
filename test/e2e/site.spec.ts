@@ -6,19 +6,11 @@ const path = (value: string) => `${base}${value}` || '/';
 
 test('timeline links to a readable pure-Markdown clip', async ({ page }) => {
   await page.goto(path('/'));
-  await expect(page.getByRole('heading', { name: '阅读摘抄' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '最近摘抄' })).toBeVisible();
   await page.getByRole('link', { name: '阅读也是一种思考', exact: true }).click();
   await expect(page.getByText('真正的阅读')).toBeVisible();
+  await expect(page.locator('article.prose h1')).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`${base}/clips/[a-f0-9]{16}/$`));
-});
-
-test('theme preference persists', async ({ page }) => {
-  await page.goto(path('/'));
-  const toggle = page.getByRole('button', { name: '切换深色模式' });
-  await toggle.click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
 test('search finds Chinese clip content and highlights the query', async ({ page }) => {
@@ -38,11 +30,11 @@ test('search offers to clear an empty result', async ({ page }) => {
 
 test('tag directory opens a creation-time-sorted classification', async ({ page }) => {
   await page.goto(path('/tags/'));
-  await expect(page.getByRole('heading', { name: '标签分类' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '分类', exact: true })).toBeVisible();
   const firstTag = page.locator('.tag-directory a').first();
   await expect(firstTag).toBeVisible();
   await firstTag.click();
-  await expect(page.getByText('按创建时间从新到旧排列。')).toBeVisible();
+  await expect(page.getByText('按创建时间排列。')).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`${base}/tags/[\\w-]+/$`));
 });
 
@@ -57,6 +49,21 @@ test('article tags stay outside the reader-mode article body', async ({ page }) 
   await expect(page.locator('article.prose[data-pagefind-body] .breadcrumbs')).toHaveCount(0);
   await expect(page.locator('.detail-tags[data-pagefind-ignore]')).toBeVisible();
   await expect(page.locator('article.prose[data-pagefind-body] .tag-list')).toHaveCount(0);
+});
+
+test('external article links open in a new page', async ({ context, page }) => {
+  await page.goto(path('/'));
+  await page.locator('.clip-card h2 a').first().click();
+
+  const externalLink = page.locator('article.prose a[href^="https://"]').first();
+  await expect(externalLink).toBeVisible();
+
+  const openedPagePromise = context.waitForEvent('page');
+  await externalLink.click();
+  const openedPage = await openedPagePromise;
+
+  await expect(openedPage).toHaveURL(/^https:\/\//);
+  await expect(page).toHaveURL(/\/clips\/[a-f0-9]{16}\/$/);
 });
 
 test('navigation stays under the configured Pages subpath', async ({ page }) => {

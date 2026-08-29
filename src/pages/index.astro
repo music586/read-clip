@@ -2,33 +2,18 @@
 import ClipList from '../components/ClipList.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { getClips } from '../lib/clips';
-import { formatDate } from '../lib/date';
 import { withBase } from '../lib/urls';
 
 const clips = await getClips();
 const pageSize = 20;
 const firstPage = clips.slice(0, pageSize);
 const totalPages = Math.ceil(clips.length / pageSize);
-const tagCount = new Set(clips.flatMap((clip) => clip.data.tags)).size;
-const latestCreatedAt = clips[0]?.data.createdAt;
 ---
 
 <SiteLayout title="阅读摘抄" description="按创建时间从新到旧整理的公开阅读摘抄。" canonicalPath="/">
-  <section class="page-heading hero">
-    <div class="hero-main">
-      <p class="eyebrow">个人阅读索引</p>
-      <h1>阅读摘抄</h1>
-      <p>从书页与文章中，收集那些值得再读一次的思想。</p>
-      <nav class="hero-links" aria-label="快捷入口">
-        <a href={withBase('/tags/')}>浏览分类</a>
-        <a href={withBase('/search/')}>搜索全文</a>
-      </nav>
-    </div>
-    <dl class="hero-index" aria-label="摘抄概览">
-      <div><dt>文章</dt><dd>{clips.length}</dd></div>
-      <div><dt>标签</dt><dd>{tagCount}</dd></div>
-      <div class="hero-latest"><dt>最近收录</dt><dd>{latestCreatedAt ? formatDate(latestCreatedAt) : '暂无'}</dd></div>
-    </dl>
+  <section class="home-intro">
+    <h1>最近摘抄</h1>
+    <p>从书页与文章中，留下那些值得重读的思想。</p>
   </section>
   {firstPage.length > 0 ? <ClipList clips={firstPage} /> : <p class="empty-state">还没有摘抄。</p>}
   {totalPages > 1 && (

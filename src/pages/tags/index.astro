@@ -5,14 +5,13 @@ import { groupByTag, tagPath } from '../../lib/tags';
 import { withBase } from '../../lib/urls';
 
 const groups = groupByTag(await getClips());
-const taggedCount = new Set(groups.flatMap((group) => group.clips.map((clip) => clip.id))).size;
 ---
 
 <SiteLayout title="标签分类" description="按照标签浏览阅读摘抄。" canonicalPath="/tags/">
-  <section class="page-heading">
-    <p class="eyebrow">{groups.length} 个标签 · {taggedCount} 篇文章</p>
-    <h1>标签分类</h1>
-    <p>从主题出发，重新发现收藏过的内容。</p>
+  <section class="page-heading taxonomy-heading">
+    <p class="eyebrow">{groups.length} 个分类</p>
+    <h1>分类</h1>
+    <p>按主题浏览摘抄。</p>
   </section>
   {groups.length > 0 ? (
     <nav class="tag-directory" aria-label="标签分类">
@@ -22,6 +21,7 @@ const taggedCount = new Set(groups.flatMap((group) => group.clips.map((clip) => 
             <a href={withBase(tagPath(group.tag))}>
               <span>{group.tag}</span>
               <small>{group.count} 篇</small>
+              <i aria-hidden="true">→</i>
             </a>
           </li>
         ))}
