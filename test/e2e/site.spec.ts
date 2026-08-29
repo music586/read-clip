@@ -53,7 +53,10 @@ test('article tags stay outside the reader-mode article body', async ({ page }) 
 
 test('external article links open in a new page', async ({ context, page }) => {
   await page.goto(path('/'));
-  await page.locator('.clip-card h2 a').first().click();
+  await page.getByRole('link', {
+    name: '我用 Obsidian 搭了一套 Agent 知识系统，保姆教程来了！',
+    exact: true,
+  }).click();
 
   const externalLink = page.locator('article.prose a[href^="https://"]').first();
   await expect(externalLink).toBeVisible();
