@@ -35,8 +35,14 @@ test('search finds Chinese clip content and highlights the query', async ({ page
 
 test('search offers to clear an empty result', async ({ page }) => {
   await page.goto(path('/search/'));
-  await page.getByRole('searchbox', { name: '搜索摘抄' }).fill('NO_RESULT_7f41a9');
-  await expect(page.getByRole('button', { name: '清除搜索' })).toBeVisible();
+  const searchbox = page.getByRole('searchbox', { name: '搜索摘抄' });
+  await searchbox.fill('qzxvjkf41a9');
+
+  const clearSearch = page.getByRole('button', { name: '清除搜索' });
+  await expect(clearSearch).toBeVisible();
+  await clearSearch.click();
+  await expect(searchbox).toHaveValue('');
+  await expect(page.getByText('输入关键词开始搜索')).toBeVisible();
 });
 
 test('tag directory opens a creation-time-sorted classification', async ({ page }) => {
