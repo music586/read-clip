@@ -86,6 +86,26 @@ test('external article links open in a new page', async ({ context, page }) => {
   await expect(page).toHaveURL(/\/clips\/[a-f0-9]{16}\/$/);
 });
 
+test('article images open in a full-size preview and close with Escape', async ({ page }) => {
+  await page.goto(path('/'));
+  await page.getByRole('link', {
+    name: '我用 Obsidian 搭了一套 Agent 知识系统，保姆教程来了！',
+    exact: true,
+  }).click();
+
+  const articleImage = page.locator('article.prose img').first();
+  const source = await articleImage.getAttribute('src');
+  await articleImage.click();
+
+  const preview = page.getByRole('dialog', { name: '图片预览' });
+  await expect(preview).toBeVisible();
+  await expect(preview.locator('img')).toHaveAttribute('src', source!);
+
+  await page.keyboard.press('Escape');
+  await expect(preview).toBeHidden();
+  await expect(articleImage).toBeFocused();
+});
+
 test('navigation stays under the configured Pages subpath', async ({ page }) => {
   test.skip(!base, 'only relevant when BASE_PATH is configured');
   await page.goto(path('/'));

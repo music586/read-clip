@@ -39,4 +39,50 @@ const canonicalPath = clipPath(clip.id);
     </header>
     <article class="prose" data-pagefind-body><Content /></article>
   </div>
+  <dialog class="image-preview" aria-label="图片预览">
+    <button class="image-preview-close" type="button" aria-label="关闭图片预览"></button>
+    <img alt="" />
+  </dialog>
 </SiteLayout>
+
+<script>
+  const preview = document.querySelector<HTMLDialogElement>('.image-preview');
+  const previewImage = preview?.querySelector<HTMLImageElement>('img');
+  const closeButton = preview?.querySelector<HTMLButtonElement>('.image-preview-close');
+  const articleImages = document.querySelectorAll<HTMLImageElement>('.prose img');
+  let triggerImage: HTMLImageElement | null = null;
+
+  const closePreview = () => preview?.close();
+
+  const openPreview = (image: HTMLImageElement) => {
+    if (!preview || !previewImage) return;
+    triggerImage = image;
+    previewImage.src = image.currentSrc || image.src;
+    previewImage.alt = image.alt;
+    preview.showModal();
+    document.body.classList.add('preview-open');
+  };
+
+  articleImages.forEach((image) => {
+    image.tabIndex = 0;
+    image.setAttribute('role', 'button');
+    image.setAttribute('aria-label', image.alt ? `预览图片：${image.alt}` : '预览图片');
+    image.addEventListener('click', () => openPreview(image));
+    image.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openPreview(image);
+    });
+  });
+
+  closeButton?.addEventListener('click', closePreview);
+  preview?.addEventListener('click', (event) => {
+    if (event.target === preview) closePreview();
+  });
+  preview?.addEventListener('close', () => {
+    document.body.classList.remove('preview-open');
+    previewImage?.removeAttribute('src');
+    triggerImage?.focus();
+    triggerImage = null;
+  });
+</script>

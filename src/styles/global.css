@@ -236,7 +236,61 @@ main { width: min(var(--layout-width), calc(100% - 2rem)); min-height: 72vh; mar
 .prose p { margin: 1.4em 0; }
 .prose a { color: var(--accent); }
 .prose blockquote { margin: 1.8rem 0; padding: .25rem 0 .25rem 1.1rem; border-left: 3px solid var(--accent); color: var(--muted); }
-.prose img { max-width: 100%; height: auto; }
+.prose img { max-width: 100%; height: auto; cursor: zoom-in; }
+.prose img:focus-visible { outline-offset: 6px; }
+.preview-open { overflow: hidden; }
+.image-preview {
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  margin: 0;
+  padding: clamp(1rem, 4vw, 3rem);
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+}
+.image-preview[open] { display: grid; place-items: center; }
+.image-preview::backdrop { background: rgb(8 10 14 / 92%); backdrop-filter: blur(8px); }
+.image-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1.2rem 3rem rgb(0 0 0 / 42%));
+}
+.image-preview-close {
+  position: fixed;
+  z-index: 1;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(118 118 128 / 32%);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 100ms ease;
+}
+.image-preview-close::before,
+.image-preview-close::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: .875rem;
+  height: 1.5px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 92%);
+  transform-origin: center;
+}
+.image-preview-close::before { transform: translate(-50%, -50%) rotate(45deg); }
+.image-preview-close::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.image-preview-close:hover { background: rgb(142 142 147 / 48%); }
+.image-preview-close:active { background: rgb(142 142 147 / 56%); transform: scale(.94); }
+.image-preview-close:focus-visible { outline-color: #fff; }
 .prose pre { overflow-x: auto; padding: 1rem; border: 1px solid var(--line); border-radius: .35rem; background: var(--paper-raised); font-size: .88rem; }
 .prose code { font-size: .9em; }
 .search-panel { margin: 2rem 0 5rem; }
