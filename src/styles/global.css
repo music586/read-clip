@@ -290,7 +290,7 @@ main { width: min(var(--layout-width), calc(100% - 2rem)); min-height: 72vh; mar
 .image-preview-close::after { transform: translate(-50%, -50%) rotate(-45deg); }
 .image-preview-close:hover { background: rgb(142 142 147 / 48%); }
 .image-preview-close:active { background: rgb(142 142 147 / 56%); transform: scale(.94); }
-.image-preview-close:focus-visible { outline-color: #fff; }
+.image-preview-close:focus-visible { outline: none; background: rgb(142 142 147 / 52%); }
 .prose pre { overflow-x: auto; padding: 1rem; border: 1px solid var(--line); border-radius: .35rem; background: var(--paper-raised); font-size: .88rem; }
 .prose code { font-size: .9em; }
 .search-panel { margin: 2rem 0 5rem; }
