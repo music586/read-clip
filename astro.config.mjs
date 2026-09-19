@@ -3,6 +3,7 @@ import sitemap from '@astrojs/sitemap';
 import { adminTagsPlugin } from './scripts/admin-tags-plugin.mjs';
 import remarkRemoveFirstHeading from './scripts/remark-remove-first-heading.mjs';
 import { rehypeExternalLinks } from './scripts/rehype-external-links.mjs';
+import { rehypeTables } from './scripts/rehype-tables.mjs';
 
 const rawBase = process.env.BASE_PATH || '/';
 const base = rawBase === '/' ? '/' : `/${rawBase.replace(/^\/+|\/+$/g, '')}`;
@@ -15,7 +16,7 @@ export default defineConfig({
   integrations: [sitemap()],
   markdown: {
     remarkPlugins: [remarkRemoveFirstHeading],
-    rehypePlugins: [rehypeExternalLinks],
+    rehypePlugins: [rehypeExternalLinks, rehypeTables],
   },
   vite: { plugins: [adminTagsPlugin()] },
 });

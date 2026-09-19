@@ -122,3 +122,28 @@ test('navigation stays under the configured Pages subpath', async ({ page }) => 
   await expect(page.getByRole('link', { name: '搜索', exact: true })).toHaveAttribute('href', `${base}/search/`);
   await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', new RegExp(`${base}/`));
 });
+
+test('Markdown tables remain readable and scroll within the article', async ({ page }, testInfo) => {
+  await openTimelineClip(page, '万字拆解 AI Agent 世代演变（2022–2026） \\#AI智能体');
+  const region = page.getByRole('region', { name: '表格，可横向滚动' }).first();
+  await expect(region).toBeVisible();
+  await expect(region.getByRole('columnheader', { name: '世代', exact: true })).toBeVisible();
+  await expect(region.getByRole('cell', { name: 'Gen 0', exact: true })).toBeVisible();
+  await region.focus();
+  await expect(region).toBeFocused();
+  const dimensions = await region.evaluate((element) => ({
+    width: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    pageWidth: document.documentElement.scrollWidth,
+    viewport: window.innerWidth,
+  }));
+  expect(dimensions.pageWidth).toBeLessThanOrEqual(dimensions.viewport);
+  if (testInfo.project.name.startsWith('mobile')) {
+    expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.width);
+    await region.press('ArrowRight');
+    await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  }
+  await region.screenshot({ path: testInfo.outputPath('table-light.png') });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await region.screenshot({ path: testInfo.outputPath('table-dark.png') });
+});
