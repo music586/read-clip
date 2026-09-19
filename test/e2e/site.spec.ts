@@ -1,13 +1,30 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const rawBase = process.env.BASE_PATH || '/';
 const base = rawBase === '/' ? '' : `/${rawBase.replace(/^\/+|\/+$/g, '')}`;
 const path = (value: string) => `${base}${value}` || '/';
 
-test('timeline links to a readable pure-Markdown clip', async ({ page }) => {
+async function openTimelineClip(page: Page, title: string) {
   await page.goto(path('/'));
-  await expect(page.getByRole('heading', { name: '最近摘抄' })).toBeVisible();
-  await page.getByRole('link', { name: '阅读也是一种思考', exact: true }).click();
+  const visited = new Set<string>();
+  while (!visited.has(page.url())) {
+    const currentUrl = page.url();
+    visited.add(currentUrl);
+    await expect(page.getByRole('heading', { name: '最近摘抄', exact: true })).toBeVisible();
+    const article = page.getByRole('link', { name: title, exact: true });
+    if (await article.count()) {
+      await article.click();
+      return;
+    }
+    const next = page.getByRole('navigation', { name: '分页' }).getByRole('link', { name: '下一页' });
+    await expect(next, `未找到摘抄「${title}」，应能继续翻页`).toBeVisible();
+    await Promise.all([page.waitForURL((url) => url.href !== currentUrl), next.click()]);
+  }
+  throw new Error(`分页出现循环，未找到摘抄：${title}`);
+}
+
+test('timeline links to a readable pure-Markdown clip', async ({ page }) => {
+  await openTimelineClip(page, '阅读也是一种思考');
   await expect(page.getByText('真正的阅读')).toBeVisible();
   await expect(page.locator('article.prose h1')).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`${base}/clips/[a-f0-9]{16}/$`));
@@ -69,11 +86,7 @@ test('article tags stay outside the reader-mode article body', async ({ page }) 
 });
 
 test('external article links open in a new page', async ({ context, page }) => {
-  await page.goto(path('/'));
-  await page.getByRole('link', {
-    name: '我用 Obsidian 搭了一套 Agent 知识系统，保姆教程来了！',
-    exact: true,
-  }).click();
+  await openTimelineClip(page, '我用 Obsidian 搭了一套 Agent 知识系统，保姆教程来了！');
 
   const externalLink = page.locator('article.prose a[href^="https://"]').first();
   await expect(externalLink).toBeVisible();
@@ -87,11 +100,7 @@ test('external article links open in a new page', async ({ context, page }) => {
 });
 
 test('article images open in a full-size preview and close with Escape', async ({ page }) => {
-  await page.goto(path('/'));
-  await page.getByRole('link', {
-    name: '我用 Obsidian 搭了一套 Agent 知识系统，保姆教程来了！',
-    exact: true,
-  }).click();
+  await openTimelineClip(page, '我用 Obsidian 搭了一套 Agent 知识系统，保姆教程来了！');
 
   const articleImage = page.locator('article.prose img').first();
   const source = await articleImage.getAttribute('src');
