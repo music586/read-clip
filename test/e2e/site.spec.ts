@@ -30,16 +30,22 @@ test('timeline links to a readable pure-Markdown clip', async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`${base}/clips/[a-f0-9]{16}/$`));
 });
 
-test('mobile timeline cards link from the excerpt area', async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.startsWith('mobile'), 'only relevant on mobile');
-  await page.goto(path('/'));
+for (const source of ['home', 'pagination', 'tag', 'search']) {
+  test(`mobile ${source} cards link from the excerpt area`, async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.startsWith('mobile'), 'only relevant on mobile');
+    await page.goto(path(source === 'pagination' ? '/page/2/' : source === 'tag' ? '/tags/' : source === 'search' ? '/search/?q=真正的阅读' : '/'));
+    if (source === 'tag') await page.locator('.tag-directory a').first().click();
 
-  const excerptBox = await page.locator('.clip-card .clip-excerpt').first().boundingBox();
-  expect(excerptBox).not.toBeNull();
-  await page.mouse.click(excerptBox!.x + excerptBox!.width / 2, excerptBox!.y + excerptBox!.height / 2);
+    const card = page.locator(source === 'search' ? '.search-results li' : '.clip-card').first();
+    await expect(card).toBeVisible();
+    const href = await card.locator('h2 a').getAttribute('href');
+    const excerptBox = await card.locator('p').boundingBox();
+    expect(excerptBox).not.toBeNull();
+    await page.touchscreen.tap(excerptBox!.x + excerptBox!.width / 2, excerptBox!.y + excerptBox!.height / 2);
 
-  await expect(page).toHaveURL(new RegExp(`${base}/clips/[a-f0-9]{16}/$`));
-});
+    await expect(page).toHaveURL(new URL(href!, page.url()).href);
+  });
+}
 
 test('search finds Chinese clip content and highlights the query', async ({ page }) => {
   await page.goto(path('/search/'));
