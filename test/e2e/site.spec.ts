@@ -153,3 +153,18 @@ test('Markdown tables remain readable and scroll within the article', async ({ p
   await page.emulateMedia({ colorScheme: 'dark' });
   await region.screenshot({ path: testInfo.outputPath('table-dark.png') });
 });
+
+test('long reference links do not widen the mobile article viewport', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith('mobile'), 'only relevant on mobile');
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openTimelineClip(page, '大神们是从哪获取优质信息，比如哪些微信公众号，知乎');
+
+  const dimensions = await page.evaluate(() => ({
+    pageWidth: document.documentElement.scrollWidth,
+    links: [...document.querySelectorAll('article.prose a')]
+      .filter((element) => element.textContent?.startsWith('https://'))
+      .map((element) => element.getBoundingClientRect().right),
+  }));
+  expect(dimensions.pageWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(320);
+  expect(Math.max(...dimensions.links), JSON.stringify(dimensions)).toBeLessThanOrEqual(320);
+});
