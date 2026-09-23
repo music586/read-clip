@@ -3,16 +3,16 @@ import SiteLayout from '../../layouts/SiteLayout.astro';
 import { getClips } from '../../lib/clips';
 import { groupByTag, tagPath } from '../../lib/tags';
 import { withBase } from '../../lib/urls';
+import TaxonomyNav from '../../components/TaxonomyNav.astro';
 
 const groups = groupByTag(await getClips());
 ---
 
 <SiteLayout title="标签分类" description="按照标签浏览阅读摘抄。" canonicalPath="/tags/">
   <section class="page-heading taxonomy-heading">
-    <p class="eyebrow">{groups.length} 个分类</p>
     <h1>分类</h1>
-    <p>按主题浏览摘抄。</p>
   </section>
+  <TaxonomyNav active="tags" />
   {groups.length > 0 ? (
     <nav class="tag-directory" aria-label="标签分类">
       <ul>
@@ -21,7 +21,6 @@ const groups = groupByTag(await getClips());
             <a href={withBase(tagPath(group.tag))}>
               <span>{group.tag}</span>
               <small>{group.count} 篇</small>
-              <i aria-hidden="true">→</i>
             </a>
           </li>
         ))}

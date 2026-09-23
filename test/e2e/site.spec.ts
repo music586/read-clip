@@ -36,7 +36,7 @@ for (const source of ['home', 'pagination', 'tag', 'search']) {
     await page.goto(path(source === 'pagination' ? '/page/2/' : source === 'tag' ? '/tags/' : source === 'search' ? '/search/?q=真正的阅读' : '/'));
     if (source === 'tag') await page.locator('.tag-directory a').first().click();
 
-    const card = page.locator(source === 'search' ? '.search-results li' : '.clip-card').first();
+    const card = page.locator(source === 'search' ? '.search-results li' : '.clip-card:visible').first();
     await expect(card).toBeVisible();
     const href = await card.locator('h2 a').getAttribute('href');
     const excerptBox = await card.locator('p').boundingBox();
@@ -47,13 +47,25 @@ for (const source of ['home', 'pagination', 'tag', 'search']) {
   });
 }
 
-test('search finds Chinese clip content and highlights the query', async ({ page }) => {
+test('search finds Chinese clip content and highlights the query', async ({ page }, testInfo) => {
   await page.goto(path('/search/'));
+  await page.screenshot({ path: testInfo.outputPath('search-initial.png') });
   await page.getByRole('searchbox', { name: '搜索摘抄' }).fill('真正的阅读');
   const result = page.getByRole('link', { name: '阅读也是一种思考' });
   await expect(result).toBeVisible();
   await expect(result).toHaveAttribute('href', new RegExp(`${base}/clips/[a-f0-9]{16}/`));
   await expect(page.locator('mark', { hasText: '真正的阅读' })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('search-results.png') });
+});
+
+test('search matches words found only in an article title', async ({ page }) => {
+  await page.goto(path('/search/?q=' + encodeURIComponent('万字拆解')));
+  await expect(page.getByRole('link', { name: '万字拆解 AI Agent 世代演变（2022–2026） \\#AI智能体', exact: true })).toBeVisible();
+});
+
+test('search finds the parenting article by its short Chinese title keyword', async ({ page }) => {
+  await page.goto(path('/search/?q=' + encodeURIComponent('育儿')));
+  await expect(page.getByRole('link', { name: '育儿引导与探索平衡', exact: true })).toBeVisible();
 });
 
 test('search offers to clear an empty result', async ({ page }) => {
@@ -68,20 +80,56 @@ test('search offers to clear an empty result', async ({ page }) => {
   await expect(page.getByText('输入关键词开始搜索')).toBeVisible();
 });
 
-test('tag directory opens a creation-time-sorted classification', async ({ page }) => {
+test('tag directory opens a publication-time-sorted classification', async ({ page }) => {
   await page.goto(path('/tags/'));
   await expect(page.getByRole('heading', { name: '分类', exact: true })).toBeVisible();
   const firstTag = page.locator('.tag-directory a').first();
   await expect(firstTag).toBeVisible();
   await firstTag.click();
-  await expect(page.getByText('按创建时间排列。')).toBeVisible();
+  await expect(page.getByText('按发布日期从新到旧排列。', { exact: false })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`${base}/tags/[\\w-]+/$`));
+});
+
+test('date classification combines filters and restores them on reload and back', async ({ page }, testInfo) => {
+  await page.goto(path('/tags/'));
+  await page.getByRole('link', { name: '按日期', exact: true }).click();
+  await expect(page.getByRole('link', { name: '按日期', exact: true })).toHaveAttribute('aria-current', 'page');
+  await page.locator('.date-directory .tag-directory a').first().click();
+  const month = page.getByRole('combobox', { name: '发布日期', exact: true });
+  const tag = page.getByRole('combobox', { name: '主题', exact: true });
+  const selectedMonth = await month.inputValue();
+  expect(selectedMonth).toMatch(/^\d{4}-\d{2}$/);
+  const visible = page.locator('[data-clip]:visible');
+  const tagged = page.locator('[data-clip]:visible').filter({ has: page.locator('.clip-card') });
+  const tags = await tagged.evaluateAll(elements => elements.flatMap(element => JSON.parse((element as HTMLElement).dataset.tags!)));
+  expect(tags.length).toBeGreaterThan(0);
+  await tag.selectOption(tags[0]);
+  const filteredCount = await visible.count();
+  expect(filteredCount).toBeGreaterThan(0);
+  for (const card of await visible.all()) {
+    await expect(card).toHaveAttribute('data-month', selectedMonth);
+    expect(JSON.parse((await card.getAttribute('data-tags'))!)).toContain(tags[0]);
+  }
+  await page.reload();
+  await expect(tag).toHaveValue(tags[0]);
+  await expect(visible).toHaveCount(filteredCount);
+  await page.getByRole('button', { name: '清除筛选' }).click();
+  await expect(tag).toHaveValue('');
+  await expect(month).toHaveValue('');
+  await expect(page.getByRole('heading', { name: '全部摘抄', exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(tag).toHaveValue(tags[0]);
+  await expect(month).toHaveValue(selectedMonth);
+  await expect(visible).toHaveCount(filteredCount);
+  if (testInfo.project.name.startsWith('mobile')) await page.setViewportSize({ width: 320, height: 720 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('date-filters.png'), fullPage: true });
 });
 
 test('article tags stay outside the reader-mode article body', async ({ page }) => {
   await page.goto(path('/tags/'));
   await page.locator('.tag-directory a').first().click();
-  await page.locator('.clip-card h2 a').first().click();
+  await page.locator('.clip-card:visible h2 a').first().click();
   const breadcrumbs = page.getByRole('navigation', { name: '面包屑导航' });
   await expect(breadcrumbs).toBeVisible();
   await expect(breadcrumbs.getByRole('link', { name: '首页' })).toHaveAttribute('href', path('/'));
@@ -126,7 +174,10 @@ test('navigation stays under the configured Pages subpath', async ({ page }) => 
   await page.goto(path('/'));
   await expect(page.getByRole('link', { name: '分类', exact: true })).toHaveAttribute('href', `${base}/tags/`);
   await expect(page.getByRole('link', { name: '搜索', exact: true })).toHaveAttribute('href', `${base}/search/`);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', new RegExp(`${base}/`));
+  // Vite injects styles during development; built assets have stylesheet URLs.
+  if (process.env.E2E_DEV !== '1') {
+    await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', new RegExp(`${base}/`));
+  }
 });
 
 test('Markdown tables remain readable and scroll within the article', async ({ page }, testInfo) => {

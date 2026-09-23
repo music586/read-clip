@@ -154,6 +154,8 @@ npm ci
 npm run dev
 ```
 
+开发模式也支持全文搜索：首次搜索时按当前文章页面生成 Pagefind 索引，后续请求复用内存缓存；正文变化后，下次加载索引时重新生成，无需先执行构建。首次搜索可能需要几秒。
+
 常用命令：
 
 | 命令 | 作用 |
@@ -164,6 +166,7 @@ npm run dev
 | `npm run build` | 构建静态站点和 Pagefind 搜索索引 |
 | `npm run preview` | 本地预览已构建的 `dist/` |
 | `npm run test:e2e` | 运行桌面端与移动端浏览器验收测试 |
+| `E2E_DEV=1 npm run test:e2e -- --grep search` | 验证开发模式下的搜索功能 |
 
 站点当前提供：
 

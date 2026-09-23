@@ -29,7 +29,7 @@ const canonicalPath = clipPath(clip.id);
     <header class="detail-header">
       <h1 data-pagefind-meta="title">{clip.data.title}</h1>
       <div class="clip-meta detail-meta">
-        <time datetime={clip.data.createdAt} title="创建时间">{formatDate(clip.data.createdAt)}</time>
+        <time datetime={clip.data.createdAt} title="发布日期">{formatDate(clip.data.createdAt)}</time>
       </div>
       {clip.data.tags.length > 0 && (
         <nav class="detail-tags" aria-label="文章标签" data-pagefind-ignore>

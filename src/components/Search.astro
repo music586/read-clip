@@ -1,14 +1,20 @@
 ---
 import { withBase } from '../lib/urls';
+import { clipPath, excerpt, getClips } from '../lib/clips';
 
 const pagefindUrl = withBase('/_pagefind/pagefind.js');
+const titles = (await getClips()).map(clip => ({
+  title: clip.data.title,
+  url: withBase(clipPath(clip.id)),
+  excerpt: excerpt(clip.body ?? ''),
+}));
 ---
 
-<div class="search-panel" data-search-root data-pagefind-url={pagefindUrl}>
+<div class="search-panel" data-search-root data-pagefind-url={pagefindUrl} data-search-titles={JSON.stringify(titles)}>
   <form role="search" class="search-form">
-    <label for="clip-search">搜索摘抄</label>
+    <label for="clip-search" class="search-label">搜索摘抄</label>
     <div class="search-input-row">
-      <input id="clip-search" type="search" name="q" autocomplete="off" placeholder="输入标题或正文…" />
+      <input id="clip-search" type="search" name="q" autocomplete="off" placeholder="搜索标题或正文…" enterkeyhint="search" />
       <button type="submit">搜索</button>
     </div>
   </form>
@@ -31,6 +37,11 @@ const pagefindUrl = withBase('/_pagefind/pagefind.js');
   };
 
   for (const root of document.querySelectorAll<HTMLElement>('[data-search-root]')) {
+    const titles = JSON.parse(root.dataset.searchTitles ?? '[]') as Array<{ title: string; url: string; excerpt: string }>;
+    const normalize = (text: string) => text.normalize('NFKC').toLowerCase();
+    const escapeHtml = (text: string) => text.replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
+    })[character] ?? character);
     const form = root.querySelector<HTMLFormElement>('form');
     const input = root.querySelector<HTMLInputElement>('input[type="search"]');
     const status = root.querySelector<HTMLElement>('.search-status');
@@ -90,7 +101,15 @@ const pagefindUrl = withBase('/_pagefind/pagefind.js');
       try {
         const api = await engine();
         const response = await api.search(query);
-        const results = await Promise.all(response.results.slice(0, 40).map((result) => result.data()));
+        const bodyResults = await Promise.all(response.results.slice(0, 40).map((result) => result.data()));
+        // Literal title matches cover Chinese terms that Pagefind's token index misses.
+        const titleResults = titles.filter(item => normalize(item.title).includes(normalize(query))).map(item => ({
+          url: item.url,
+          meta: { title: item.title },
+          excerpt: escapeHtml(item.excerpt),
+          content: escapeHtml(`${item.title} ${item.excerpt}`),
+        }));
+        const results = [...new Map([...titleResults, ...bodyResults].map(result => [result.url, result])).values()].slice(0, 40);
         for (const result of results) {
           const item = document.createElement('li');
           const heading = document.createElement('h2');

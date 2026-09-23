@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import { adminTagsPlugin } from './scripts/admin-tags-plugin.mjs';
+import { devSearchPlugin } from './scripts/dev-search-plugin.mjs';
 import remarkRemoveFirstHeading from './scripts/remark-remove-first-heading.mjs';
 import { rehypeExternalLinks } from './scripts/rehype-external-links.mjs';
 import { rehypeTables } from './scripts/rehype-tables.mjs';
@@ -18,5 +19,5 @@ export default defineConfig({
     remarkPlugins: [remarkRemoveFirstHeading],
     rehypePlugins: [rehypeExternalLinks, rehypeTables],
   },
-  vite: { plugins: [adminTagsPlugin()] },
+  vite: { plugins: [adminTagsPlugin(), devSearchPlugin()] },
 });

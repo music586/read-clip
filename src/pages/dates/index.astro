@@ -1,0 +1,29 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import TaxonomyNav from '../../components/TaxonomyNav.astro';
+import { getClips } from '../../lib/clips';
+import { groupByMonth, monthPath } from '../../lib/archive';
+import { withBase } from '../../lib/urls';
+const groups = groupByMonth(await getClips());
+const years = [...new Set(groups.map(group => group.key.slice(0, 4)))];
+---
+<SiteLayout title="日期分类" description="按发布日期浏览阅读摘抄。" canonicalPath="/dates/">
+  <section class="page-heading taxonomy-heading">
+    <h1>分类</h1>
+  </section>
+  <TaxonomyNav active="dates" />
+  <div class="date-directory">
+    {years.map(year => {
+      const months = groups.filter(group => group.key.startsWith(year));
+      return <section class="archive-year">
+        <header><h2>{year} 年</h2><span>{months.reduce((sum, group) => sum + group.count, 0)} 篇</span></header>
+        <nav class="tag-directory" aria-label={`${year} 年月份`}>
+          <ul>{months.map(group => <li><a href={withBase(monthPath(group.key))}>
+            <span>{Number(group.key.slice(5))} 月</span><small>{group.count} 篇</small>
+          </a></li>)}</ul>
+        </nav>
+      </section>;
+    })}
+    {!groups.length && <p class="empty-state">还没有文章。</p>}
+  </div>
+</SiteLayout>

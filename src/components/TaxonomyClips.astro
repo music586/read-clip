@@ -1,0 +1,64 @@
+---
+import ClipCard from './ClipCard.astro';
+import { type ClipEntry } from '../lib/clips';
+import { groupByMonth, monthKey, monthLabel } from '../lib/archive';
+import { groupByTag } from '../lib/tags';
+interface Props { clips: ClipEntry[]; tag?: string; month?: string }
+const { clips, tag = '', month = '' } = Astro.props;
+const tags = groupByTag(clips);
+const months = groupByMonth(clips);
+const matches = (clip: ClipEntry) => (!tag || clip.data.tags.includes(tag)) && (!month || monthKey(clip.data.createdAt) === month);
+---
+<taxonomy-clips data-tag={tag} data-month={month}>
+  <div class="taxonomy-filters" hidden>
+    <label>主题<select name="tag"><option value="">全部主题</option>{tags.map(group => <option value={group.tag} selected={tag === group.tag}>{group.tag}</option>)}</select></label>
+    <label>发布日期<select name="month"><option value="">全部日期</option>{months.map(group => <option value={group.key} selected={month === group.key}>{monthLabel(group.key)}</option>)}</select></label>
+    <button type="button">清除筛选</button>
+  </div>
+  <p class="taxonomy-count" role="status">{clips.filter(matches).length} 篇，按发布日期从新到旧排列。</p>
+  <div class="taxonomy-clips clip-list">
+    {clips.map(clip => <div data-clip data-month={monthKey(clip.data.createdAt)} data-tags={JSON.stringify(clip.data.tags)} hidden={!matches(clip)}><ClipCard clip={clip} /></div>)}
+  </div>
+  <p class="empty-state" data-empty hidden={clips.some(matches)}>这个主题在所选月份还没有文章。可以调整或清除筛选。</p>
+</taxonomy-clips>
+<script>
+  class TaxonomyClips extends HTMLElement {
+    connectedCallback() {
+      const tag = this.querySelector<HTMLSelectElement>('[name="tag"]')!;
+      const month = this.querySelector<HTMLSelectElement>('[name="month"]')!;
+      const cards = [...this.querySelectorAll<HTMLElement>('[data-clip]')];
+      const apply = () => {
+        let count = 0;
+        for (const card of cards) {
+          const tags: string[] = JSON.parse(card.dataset.tags!);
+          card.hidden = !!((tag.value && !tags.includes(tag.value)) || (month.value && card.dataset.month !== month.value));
+          if (!card.hidden) count++;
+        }
+        this.querySelector('[role="status"]')!.textContent = `${count} 篇，按发布日期从新到旧排列。`;
+        this.querySelector<HTMLElement>('[data-empty]')!.hidden = count > 0;
+        const heading = document.querySelector('.taxonomy-heading h1');
+        if (heading) heading.textContent = [tag.value, month.value ? month.selectedOptions[0].textContent : ''].filter(Boolean).join(' · ') || '全部摘抄';
+      };
+      const restore = () => {
+        const params = new URL(location.href).searchParams;
+        tag.value = params.get('tag') ?? this.dataset.tag ?? '';
+        month.value = params.get('month') ?? this.dataset.month ?? '';
+        apply();
+      };
+      const change = () => {
+        const url = new URL(location.href);
+        url.searchParams.set('tag', tag.value);
+        url.searchParams.set('month', month.value);
+        history.pushState(null, '', url);
+        apply();
+      };
+      tag.addEventListener('change', change);
+      month.addEventListener('change', change);
+      this.querySelector('button')!.addEventListener('click', () => { tag.value = ''; month.value = ''; change(); });
+      window.addEventListener('popstate', restore);
+      this.querySelector<HTMLElement>('.taxonomy-filters')!.hidden = false;
+      restore();
+    }
+  }
+  customElements.define('taxonomy-clips', TaxonomyClips);
+</script>

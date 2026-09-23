@@ -1,0 +1,9 @@
+---
+import { withBase } from '../lib/urls';
+interface Props { active: 'tags' | 'dates' }
+const { active } = Astro.props;
+---
+<nav class="taxonomy-nav" aria-label="分类方式">
+  <a href={withBase('/tags/')} aria-current={active === 'tags' ? 'page' : undefined}>按主题</a>
+  <a href={withBase('/dates/')} aria-current={active === 'dates' ? 'page' : undefined}>按日期</a>
+</nav>

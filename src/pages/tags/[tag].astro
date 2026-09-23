@@ -1,6 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro';
-import ClipList from '../../components/ClipList.astro';
+import TaxonomyClips from '../../components/TaxonomyClips.astro';
+import TaxonomyNav from '../../components/TaxonomyNav.astro';
 import SiteLayout from '../../layouts/SiteLayout.astro';
 import { getClips } from '../../lib/clips';
 import { groupByTag, tagPath, type TagGroup } from '../../lib/tags';
@@ -16,7 +17,7 @@ const { group } = Astro.props;
   <section class="page-heading taxonomy-heading">
     <p class="eyebrow">分类</p>
     <h1>{group.tag}</h1>
-    <p>{group.count} 篇，按创建时间排列。</p>
   </section>
-  <div class="taxonomy-clips"><ClipList clips={group.clips} /></div>
+  <TaxonomyNav active="tags" />
+  <TaxonomyClips clips={await getClips()} tag={group.tag} />
 </SiteLayout>

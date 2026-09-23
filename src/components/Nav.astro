@@ -21,7 +21,7 @@ const currentPath = Astro.url.pathname;
           <li>
             <a
               href={withBase(item.path)}
-              aria-current={currentPath === withBase(item.path) || (item.path !== '/' && currentPath.startsWith(withBase(item.path))) ? 'page' : undefined}
+              aria-current={currentPath === withBase(item.path) || (item.path !== '/' && currentPath.startsWith(withBase(item.path))) || (item.path === '/tags/' && currentPath.startsWith(withBase('/dates/'))) ? 'page' : undefined}
             >
               {item.label}
             </a>

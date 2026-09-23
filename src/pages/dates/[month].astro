@@ -1,0 +1,16 @@
+---
+import type { GetStaticPaths } from 'astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import TaxonomyNav from '../../components/TaxonomyNav.astro';
+import TaxonomyClips from '../../components/TaxonomyClips.astro';
+import { getClips } from '../../lib/clips';
+import { groupByMonth, monthLabel, monthPath } from '../../lib/archive';
+export const getStaticPaths = (async () => groupByMonth(await getClips()).map(group => ({ params: { month: group.key } }))) satisfies GetStaticPaths;
+const month = Astro.params.month!;
+const clips = await getClips();
+---
+<SiteLayout title={monthLabel(month)} description={`${monthLabel(month)}发布的阅读摘抄。`} canonicalPath={monthPath(month)}>
+  <section class="page-heading taxonomy-heading"><p class="eyebrow">日期分类</p><h1>{monthLabel(month)}</h1></section>
+  <TaxonomyNav active="dates" />
+  <TaxonomyClips clips={clips} month={month} />
+</SiteLayout>
