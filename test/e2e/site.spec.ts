@@ -97,28 +97,37 @@ test('date classification combines filters and restores them on reload and back'
   await page.locator('.date-directory .tag-directory a').first().click();
   const month = page.getByRole('combobox', { name: '发布日期', exact: true });
   const tag = page.getByRole('combobox', { name: '主题', exact: true });
-  const selectedMonth = await month.inputValue();
-  expect(selectedMonth).toMatch(/^\d{4}-\d{2}$/);
+  expect(await month.inputValue()).toMatch(/^\d{4}-\d{2}$/);
+  // New months may contain only untagged clips. Pick an existing combination
+  // from all cards, including those hidden by the initial month filter.
+  const combination = await page.locator('[data-clip]').evaluateAll(elements => {
+    for (const element of elements) {
+      const { month, tags } = (element as HTMLElement).dataset;
+      const parsedTags: string[] = JSON.parse(tags!);
+      if (parsedTags.length) return { month: month!, tag: parsedTags[0] };
+    }
+    return null;
+  });
+  expect(combination, '需要至少一篇带主题标签的摘抄来验证组合筛选').not.toBeNull();
+  const { month: selectedMonth, tag: selectedTag } = combination!;
+  await month.selectOption(selectedMonth);
   const visible = page.locator('[data-clip]:visible');
-  const tagged = page.locator('[data-clip]:visible').filter({ has: page.locator('.clip-card') });
-  const tags = await tagged.evaluateAll(elements => elements.flatMap(element => JSON.parse((element as HTMLElement).dataset.tags!)));
-  expect(tags.length).toBeGreaterThan(0);
-  await tag.selectOption(tags[0]);
+  await tag.selectOption(selectedTag);
   const filteredCount = await visible.count();
   expect(filteredCount).toBeGreaterThan(0);
   for (const card of await visible.all()) {
     await expect(card).toHaveAttribute('data-month', selectedMonth);
-    expect(JSON.parse((await card.getAttribute('data-tags'))!)).toContain(tags[0]);
+    expect(JSON.parse((await card.getAttribute('data-tags'))!)).toContain(selectedTag);
   }
   await page.reload();
-  await expect(tag).toHaveValue(tags[0]);
+  await expect(tag).toHaveValue(selectedTag);
   await expect(visible).toHaveCount(filteredCount);
   await page.getByRole('button', { name: '清除筛选' }).click();
   await expect(tag).toHaveValue('');
   await expect(month).toHaveValue('');
   await expect(page.getByRole('heading', { name: '全部摘抄', exact: true })).toBeVisible();
   await page.goBack();
-  await expect(tag).toHaveValue(tags[0]);
+  await expect(tag).toHaveValue(selectedTag);
   await expect(month).toHaveValue(selectedMonth);
   await expect(visible).toHaveCount(filteredCount);
   if (testInfo.project.name.startsWith('mobile')) await page.setViewportSize({ width: 320, height: 720 });
@@ -181,6 +190,11 @@ test('navigation stays under the configured Pages subpath', async ({ page }) => 
 });
 
 test('Markdown tables remain readable and scroll within the article', async ({ page }, testInfo) => {
+  // Table layout must not depend on third-party image servers or smooth
+  // scrolling while Playwright brings the region into view for screenshots.
+  await page.route('https://**/*', route =>
+    route.request().resourceType() === 'image' ? route.abort() : route.continue());
+  await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: 'light' });
   await openTimelineClip(page, '万字拆解 AI Agent 世代演变（2022–2026） \\#AI智能体');
   const region = page.getByRole('region', { name: '表格，可横向滚动' }).first();
   await expect(region).toBeVisible();
